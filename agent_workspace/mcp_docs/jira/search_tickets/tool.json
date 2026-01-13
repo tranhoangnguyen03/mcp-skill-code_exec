@@ -1,0 +1,30 @@
+{
+  "name": "search_tickets",
+  "description": "Search tickets by project and/or status.",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "project": { "type": ["string", "null"] },
+      "status": { "type": ["string", "null"] }
+    },
+    "required": [],
+    "additionalProperties": false
+  },
+  "outputSchema": {
+    "type": "array",
+    "items": {
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "project": { "type": "string" },
+        "summary": { "type": "string" },
+        "priority": { "type": "string" },
+        "status": { "type": "string" }
+      },
+      "required": ["id", "project", "summary", "priority", "status"],
+      "additionalProperties": false
+    }
+  },
+  "errors": []
+}
+

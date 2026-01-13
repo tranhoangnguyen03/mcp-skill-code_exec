@@ -1,0 +1,17 @@
+{
+  "name": "create_ticket",
+  "description": "Create a new ticket and return its id.",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "project": { "type": "string", "description": "Project key (e.g. IT, PEOPLE)." },
+      "summary": { "type": "string" },
+      "priority": { "type": "string", "description": "Free-form priority label." }
+    },
+    "required": ["project", "summary", "priority"],
+    "additionalProperties": false
+  },
+  "outputSchema": { "type": "string", "description": "Ticket id like IT-101." },
+  "errors": []
+}
+

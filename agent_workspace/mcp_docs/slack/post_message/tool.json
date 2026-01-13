@@ -1,0 +1,16 @@
+{
+  "name": "post_message",
+  "description": "Post a message to a channel.",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "channel": { "type": "string", "description": "Channel name like #hr." },
+      "message": { "type": "string" }
+    },
+    "required": ["channel", "message"],
+    "additionalProperties": false
+  },
+  "outputSchema": { "type": "null" },
+  "errors": []
+}
+

@@ -1,0 +1,6 @@
+## Example
+
+```json
+{ "channel": "dm" }
+```
+

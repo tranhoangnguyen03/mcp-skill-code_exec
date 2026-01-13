@@ -1,0 +1,33 @@
+Write a complete, runnable Python script that fulfills the user request using the provided SKILL.md.
+
+User request:
+{user_message}
+
+Plan JSON:
+{plan_json}
+
+Skill manual (SKILL.md):
+{skill_md}
+
+Tool contracts (mcp_tools APIs and data shape):
+{tool_contracts}
+
+Retry context (may be empty):
+Attempt: {attempt}
+Previous error:
+{previous_error}
+Previous code:
+{previous_code}
+
+Constraints:
+- Use only Python standard library plus the local package "mcp_tools".
+- Do not import chainlit.
+- Print clear progress lines and a final summary.
+- No placeholders like TODO.
+- Treat all BambooHR employees as plain dicts; do not assume nested objects.
+- Call tools using normal Python function arguments (positional/keyword), not MCP JSON payload objects.
+  - Good: `bamboo_hr.search_employees(query="Davis")`
+  - Bad: `bamboo_hr.search_employees({{"query": "Davis"}})`
+- When a tool schema marks a field as required (e.g. Slack `send_dm` requires `message`), always pass it.
+
+Return ONLY a single Python code block.

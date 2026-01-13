@@ -1,0 +1,27 @@
+{
+  "name": "list_messages",
+  "description": "List recorded messages, optionally filtering by channel (e.g. dm, #hr).",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "channel": { "type": ["string", "null"] }
+    },
+    "required": [],
+    "additionalProperties": false
+  },
+  "outputSchema": {
+    "type": "array",
+    "items": {
+      "type": "object",
+      "properties": {
+        "channel": { "type": "string" },
+        "user_id": { "type": ["string", "null"] },
+        "text": { "type": "string" }
+      },
+      "required": ["channel", "user_id", "text"],
+      "additionalProperties": false
+    }
+  },
+  "errors": []
+}
+

@@ -1,0 +1,37 @@
+{
+  "name": "get_probation_checkins",
+  "description": "Return employees whose hire_date is within the window around days_since_hire.",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "days_since_hire": { "type": "integer", "description": "Target days since hire. Default 90." },
+      "window_days": { "type": "integer", "description": "Window size around target. Default 7." }
+    },
+    "required": [],
+    "additionalProperties": false
+  },
+  "outputSchema": {
+    "type": "array",
+    "items": { "$ref": "#/$defs/Employee" },
+    "$defs": {
+      "Employee": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer" },
+          "name": { "type": "string" },
+          "dept": { "type": "string" },
+          "role": { "type": "string" },
+          "status": { "type": "string" },
+          "hire_date": { "type": "string" },
+          "manager": { "type": "string" },
+          "slack_id": { "type": "string" },
+          "manager_slack_id": { "type": "string" }
+        },
+        "required": ["id", "name", "dept", "role", "status", "hire_date", "manager", "slack_id", "manager_slack_id"],
+        "additionalProperties": false
+      }
+    }
+  },
+  "errors": []
+}
+
