@@ -1,24 +1,41 @@
-## mcp-skill-code_exec
+# mcp-skill-code_exec
 
-Demo “skill-driven” agent that:
-- Scans `agent_workspace/skills/` to discover supported HR workflows
-- Uses an OpenRouter LLM to pick a skill, generate Python code, execute it, then summarize results
-- Provides mock “MCP tools” for BambooHR, Jira, and Slack under `agent_workspace/mcp_tools/`
+Skill-driven HR automation agent that:
+- selects a scripted workflow when it matches a known skill
+- otherwise generates a custom Python script using the available MCP tools
+- executes the script and summarizes outputs
 
-### Folder Layout
+This repo includes mock integrations for BambooHR, Jira, and Slack under `agent_workspace/mcp_tools/`.
+
+## How it works
+
+- **Plan**: classify the request as `chat`, `execute_skill`, or `custom_script`
+- **Codegen**: generate a runnable Python script using either:
+  - a specific `SKILL.md` manual (scripted skills), or
+  - a generic custom workflow manual (no skill match)
+- **Execute**: run the generated code in a sandboxed subprocess with a timeout
+- **Respond**: summarize stdout/stderr and the outcome
+
+## Repository layout
 
 ```
 agent_workspace/
-  hr_agent/                Agent logic (planner → codegen → execute → respond)
+  hr_agent/                Agent logic (plan → codegen → execute → respond)
   mcp_tools/               Mock integrations (bamboo_hr, jira, slack)
-  prompts/                 Prompts (plan, codegen, respond)
+  mcp_docs/                MCP-style tool documentation (schemas + examples)
+  prompts/                 Prompts (plan, codegen, respond, custom_skill)
   skills/                  Skill manuals (SKILL.md per skill)
-  .env                     OpenRouter config (not committed)
+  .env                     Local OpenRouter config (do not commit)
+tests/                     Unit tests
 ```
 
-### Setup
+## Setup
 
-1) Create a virtualenv and install dependencies:
+### Requirements
+
+- Python 3.11+ recommended
+
+### Install
 
 ```bash
 python -m venv .venv
@@ -26,31 +43,48 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-2) Ensure `agent_workspace/.env` contains:
-- `open_router_api_key`
-- `open_router_model_name`
+### Configure OpenRouter
 
-### Run (CLI)
+Copy the example env file and fill in values:
+
+```bash
+cp agent_workspace/.env.example agent_workspace/.env
+```
+
+`agent_workspace/.env` should contain:
+
+```
+open_router_api_key=...
+open_router_model_name=...
+```
+
+## Run
+
+### CLI
 
 ```bash
 cd agent_workspace
 python main_agent.py
 ```
 
-### Run (Chat UI with Chainlit)
-
-From the repo root:
+### Chat UI (Chainlit)
 
 ```bash
 chainlit run chainlit_app.py
 ```
 
-### Skills
+## Skills and tools
 
-See the supported skills list in `agent_workspace/skills/Readme.md`.
+- Skills list: `agent_workspace/skills/Readme.md`
+- MCP tool docs (schemas): `agent_workspace/mcp_docs/`
 
-### Tests
+## Tests
 
 ```bash
-pytest
+python -m pytest -q
 ```
+
+## Notes for public sharing
+
+- Do not commit `agent_workspace/.env` or any API keys.
+- Chainlit creates local state under `.chainlit/` and `agent_workspace/.chainlit/` which should remain untracked.
