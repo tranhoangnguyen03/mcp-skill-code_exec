@@ -1,0 +1,31 @@
+---
+name: hr-scopes
+description: A set of scoped examples for common HR lifecycle workflows (onboarding, offboarding, role changes, probation check-ins, and daily new-hire digests). Use this skill whenever asked to define, scope, or implement an HR workflow using BambooHR, Jira, and Slack-style tools.
+license: Internal
+---
+
+## When to use this skill
+Use this skill when the request involves:
+- Onboarding new hires
+- Offboarding employees
+- Role/department changes that require access review
+- Probation milestone check-ins and reminders
+- Daily or periodic reporting on new hires
+- Designing a consistent “scope” and workflow for HR automations
+
+## How to use this skill
+1. Identify the closest matching workflow scope from the user request.
+2. Load the matching example from the `examples/` directory:
+   - `examples/onboarding_new_hires.md`
+   - `examples/offboarding_employee.md`
+   - `examples/role_change_access_review.md`
+   - `examples/probation_checkin_reminders.md`
+   - `examples/daily_new_hires_digest.md`
+3. Follow the example’s structure for inputs, dependencies, and logic flow.
+4. If the request is a variant, start from the closest example and adapt deterministically (explicit defaults, clear disambiguation, and a final summary).
+
+## Tools
+The agent can write custom Python scripts and call individual tools from a local `mcp_tools` package to perform custom HR tasks. Tool contracts are documented under `tools/mcp_docs`.
+
+## Keywords
+HR workflows, onboarding, offboarding, role change, access review, probation check-in, new hire digest, BambooHR, Jira, Slack
