@@ -1,11 +1,10 @@
 {
   "name": "slack",
   "description": "Mock Slack-like messaging (DMs and channel posts).",
-  "python_module": "agent_workspace.mcp_tools.slack",
+  "python_module": "mcp_tools.slack",
   "tools": [
     "send_dm",
     "post_message",
     "list_messages"
   ]
 }
-

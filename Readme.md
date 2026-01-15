@@ -5,7 +5,7 @@ Skill-driven HR automation agent that:
 - otherwise generates a custom Python script using the available MCP tools
 - executes the script and summarizes outputs
 
-This repo includes mock integrations for BambooHR, Jira, and Slack under `agent_workspace/mcp_tools/`.
+This repo includes mock integrations for BambooHR, Jira, and Slack under `agent_workspace/skills_v2/HR-scopes/tools/mcp_tools/`.
 
 ## How it works
 
@@ -20,11 +20,14 @@ This repo includes mock integrations for BambooHR, Jira, and Slack under `agent_
 
 ```
 agent_workspace/
-  hr_agent/                Agent logic (plan → codegen → execute → respond)
-  mcp_tools/               Mock integrations (bamboo_hr, jira, slack)
-  mcp_docs/                MCP-style tool documentation (schemas + examples)
+  hr_agent_v2/             Agent logic (plan → codegen → execute → respond)
   prompts/                 Prompts (plan, codegen, respond, custom_skill)
-  skills/                  Skill manuals (SKILL.md per skill)
+  skills_v2/               Skill group and example manuals
+    HR-scopes/
+      examples/            Skill manuals (markdown examples)
+      tools/
+        mcp_tools/         Mock integrations (bamboo_hr, jira, slack)
+        mcp_docs/          MCP-style tool documentation (server.json + examples)
   .env                     Local OpenRouter config (do not commit)
 tests/                     Unit tests
 ```
@@ -63,20 +66,19 @@ open_router_model_name=...
 ### CLI
 
 ```bash
-cd agent_workspace
-python main_agent.py
+python agent_workspace/main_agent_v2.py
 ```
 
 ### Chat UI (Chainlit)
 
 ```bash
-chainlit run chainlit_app.py
+chainlit run chainlit_app_v2.py
 ```
 
 ## Skills and tools
 
-- Skills list: `agent_workspace/skills/Readme.md`
-- MCP tool docs (schemas): `agent_workspace/mcp_docs/`
+- Skills list: `agent_workspace/skills_v2/Readme.md`
+- MCP tool docs (schemas): `agent_workspace/skills_v2/HR-scopes/tools/mcp_docs/`
 
 ## Tests
 

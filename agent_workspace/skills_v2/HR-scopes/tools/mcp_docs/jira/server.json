@@ -1,7 +1,7 @@
 {
   "name": "jira",
   "description": "Mock Jira-like ticket creation and management.",
-  "python_module": "agent_workspace.mcp_tools.jira",
+  "python_module": "mcp_tools.jira",
   "tools": [
     "create_ticket",
     "add_comment",
@@ -10,4 +10,3 @@
     "search_tickets"
   ]
 }
-

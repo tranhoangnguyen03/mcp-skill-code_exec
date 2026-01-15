@@ -1,7 +1,7 @@
 {
   "name": "bamboo_hr",
   "description": "Mock BambooHR-like employee directory and lifecycle operations.",
-  "python_module": "agent_workspace.mcp_tools.bamboo_hr",
+  "python_module": "mcp_tools.bamboo_hr",
   "tools": [
     "list_employees",
     "get_employee",
@@ -14,4 +14,3 @@
     "mark_offboarding"
   ]
 }
-

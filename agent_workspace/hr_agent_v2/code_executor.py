@@ -38,6 +38,7 @@ class PythonCodeExecutor:
                     [sys.executable, str(tmp_path)],
                     cwd=str(self.workspace_dir),
                     env=env,
+                    stdin=subprocess.DEVNULL,
                     text=True,
                     capture_output=True,
                     timeout=self.timeout_seconds,

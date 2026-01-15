@@ -22,6 +22,8 @@ Previous code:
 Constraints:
 - Use only Python standard library plus the local package "mcp_tools".
 - Do not import chainlit.
+- Do not use input(), sys.argv, or any interactive prompts.
+- Do not wait/sleep, start servers, or run infinite loops.
 - Print clear progress lines and a final summary.
 - No placeholders like TODO.
 - Treat all BambooHR employees as plain dicts; do not assume nested objects.

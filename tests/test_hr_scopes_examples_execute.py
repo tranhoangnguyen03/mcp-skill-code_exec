@@ -111,6 +111,29 @@ print("status", updated["status"])
     assert "status Offboarding (" in result.exec_stdout
 
 
+def test_hr_scopes_offboarding_queue_review_executes():
+    code = """
+import mcp_tools.bamboo_hr as bamboo
+import mcp_tools.jira as jira
+import mcp_tools.slack as slack
+
+employees = bamboo.list_employees()
+offboarding = [e for e in employees if str(e.get("status", "")).startswith("Offboarding (")]
+ticket_ids = []
+for e in offboarding:
+    tid = jira.create_ticket(project="IT", summary=f"Offboarding queue: {e['name']} ({e['status']})", priority="High")
+    ticket_ids.append(tid)
+    slack.send_dm(user_id=e["manager_slack_id"], message=f"Offboarding queued for {e['name']}. Ticket: {tid}")
+print("offboarding", len(offboarding))
+print("tickets", len(ticket_ids))
+"""
+    agent = HRAgent(llm=ExampleLLM(skill_name="Offboarding Queue Review", code=code))
+    result = __import__("asyncio").run(agent.run(user_message="Anyone offboarding we need to process?"))
+    assert result.exec_stdout is not None
+    assert "offboarding 1" in result.exec_stdout
+    assert "tickets 1" in result.exec_stdout
+
+
 def test_hr_scopes_role_change_access_review_executes():
     code = """
 import mcp_tools.bamboo_hr as bamboo

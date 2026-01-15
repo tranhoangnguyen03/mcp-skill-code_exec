@@ -1,6 +1,6 @@
 # MCP Docs
 
-This folder documents the mock tool servers under `agent_workspace/mcp_tools` for Python-based code execution.
+This folder documents the mock tool servers under `mcp_tools` for Python-based code execution.
 
 ## Structure
 
