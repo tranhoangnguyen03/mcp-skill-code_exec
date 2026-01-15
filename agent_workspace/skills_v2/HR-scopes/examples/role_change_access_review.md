@@ -16,6 +16,13 @@ This skill supports role/department changes. It updates the employee record and 
   - `dept` (optional)
   - `role` (optional)
 
+## Action Steps
+1. Identify the employee by id or by searching their name.
+2. Update the employee’s department and/or role in BambooHR.
+3. Create an IT access review Jira ticket describing the change.
+4. DM the manager that an access review is required.
+5. Print a short summary (updated fields and ticket id).
+
 ## Logic Flow
 1. Identify the employee:
    - If `employee_id` is provided, call `bamboo_hr.get_employee(employee_id)`.

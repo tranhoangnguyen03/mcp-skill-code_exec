@@ -13,6 +13,14 @@ This skill automates basic onboarding steps for new hires. It creates an IT setu
 - Department filter (optional): `dept` (string). If provided, filter by exact match to `employee["dept"]`.
 - Notify manager (optional): `notify_manager` (boolean). Default: true.
 
+## Action Steps
+1. Fetch new hires for today (or a specified date range).
+2. Optionally filter hires by department.
+3. For each hire, create an IT onboarding Jira ticket.
+4. DM the hire with onboarding information.
+5. If enabled, DM the manager with onboarding context.
+6. Print a short summary (hires processed and ticket ids).
+
 ## Logic Flow
 1. Fetch hires:
    - If no date range is provided, call `bamboo_hr.get_todays_hires()`.

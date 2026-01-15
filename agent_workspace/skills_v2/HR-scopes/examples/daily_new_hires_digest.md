@@ -12,6 +12,13 @@ This skill posts a digest of new hires to a Slack channel (e.g. `#hr` or `#peopl
 - Slack channel (optional): `channel` (string). Default: `#hr`.
 - Department filter (optional): `dept` (string). If provided, filter by exact match to `employee["dept"]`.
 
+## Action Steps
+1. Fetch new hires for the chosen date range.
+2. Optionally filter hires by department.
+3. Build a digest message (or a clear “no hires” message).
+4. Post the digest to the target Slack channel.
+5. Print a short summary (channel and hire count).
+
 ## Logic Flow
 1. Fetch hires:
    - If no date range is provided, call `bamboo_hr.get_todays_hires()`.

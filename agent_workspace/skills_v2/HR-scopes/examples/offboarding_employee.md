@@ -14,6 +14,13 @@ This skill starts an offboarding workflow for an employee. It marks them as offb
   - Otherwise use `bamboo_hr.search_employees(query)` with a name string.
 - Offboarding effective date (optional): `effective_date` in `YYYY-MM-DD`. Default: today.
 
+## Action Steps
+1. Identify the employee by id or by searching their name.
+2. Mark the employee as offboarding in BambooHR (effective date optional).
+3. Create a high-priority IT deprovision Jira ticket.
+4. DM the manager that offboarding has started.
+5. Print a short summary (status and ticket id).
+
 ## Logic Flow
 1. Identify the employee:
    - If `employee_id` is provided, call `bamboo_hr.get_employee(employee_id)`.

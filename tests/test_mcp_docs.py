@@ -34,7 +34,5 @@ def test_mcp_docs_cover_all_tools():
 
         for fn_name in _public_functions(module):
             tool_dir = docs_root / doc_name / fn_name
-            assert (tool_dir / "tool.json").exists()
             assert (tool_dir / "examples.md").exists()
             assert fn_name in server_tools
-

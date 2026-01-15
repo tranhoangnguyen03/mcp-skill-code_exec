@@ -13,7 +13,8 @@ Otherwise choose action "execute_skill" and pick exactly one skill that best mat
 Return ONLY valid JSON with this schema:
 {{
   "action": "one_of: chat, execute_skill, custom_script",
-  "skill_name": "required when action=execute_skill, else null; one_of: {skill_names}",
+  "skill_group": "required when action=execute_skill, else null; for HR-scopes use 'HR-scopes'",
+  "skill_name": "when action=execute_skill: one_of: {skill_names}; when action=custom_script: a short custom skill name; else null",
   "intent": "short intent statement",
   "steps": ["step 1", "step 2", "step 3"]
 }}

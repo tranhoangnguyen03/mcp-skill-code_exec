@@ -13,6 +13,12 @@ This skill finds employees who are approaching a probation milestone and reminds
 - `window_days` (integer, default: 7)
 - Jira project (optional): `project` (string, default: `PEOPLE`)
 
+## Action Steps
+1. Fetch employees approaching the probation milestone window.
+2. For each employee, create a low-priority Jira check-in ticket.
+3. DM the manager with a reminder and ticket link/reference.
+4. If no employees match, print a clear no-op message.
+
 ## Logic Flow
 1. Fetch employees in the check-in window:
    - `employees = bamboo_hr.get_probation_checkins(days_since_hire=days_since_hire, window_days=window_days)`
