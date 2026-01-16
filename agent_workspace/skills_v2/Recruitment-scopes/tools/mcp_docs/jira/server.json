@@ -1,0 +1,9 @@
+{
+  "name": "jira",
+  "description": "Ticketing for recruiting coordination and follow-ups.",
+  "python_module": "mcp_tools.jira",
+  "tools": [
+    "create_ticket"
+  ]
+}
+

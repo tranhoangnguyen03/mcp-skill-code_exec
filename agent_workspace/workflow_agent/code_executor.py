@@ -21,13 +21,20 @@ class PythonCodeExecutor:
         self.timeout_seconds = timeout_seconds
         self.extra_pythonpaths = [p for p in (extra_pythonpaths or []) if p]
 
-    def run(self, code: str) -> ExecutionResult:
+    def run(self, code: str, *, extra_pythonpaths: list[Path] | None = None) -> ExecutionResult:
         with tempfile.TemporaryDirectory() as tmpdir:
             tmp_path = Path(tmpdir) / "generated.py"
             tmp_path.write_text(code, encoding="utf-8")
 
             env = dict(os.environ)
-            pythonpaths: list[str] = [str(p) for p in self.extra_pythonpaths] + [str(self.workspace_dir)]
+            pythonpaths: list[str] = []
+            seen: set[str] = set()
+            for p in (extra_pythonpaths or []) + self.extra_pythonpaths + [self.workspace_dir]:
+                s = str(p)
+                if s in seen:
+                    continue
+                seen.add(s)
+                pythonpaths.append(s)
             existing = env.get("PYTHONPATH")
             if existing:
                 pythonpaths.append(existing)

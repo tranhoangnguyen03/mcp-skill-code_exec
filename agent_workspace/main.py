@@ -4,11 +4,11 @@ from pathlib import Path
 from dotenv import load_dotenv
 
 try:
-    from hr_agent_v2.agent import HRAgent
-    from hr_agent_v2.openrouter_client import OpenRouterClient
+    from workflow_agent.agent import HRAgent
+    from workflow_agent.openrouter_client import OpenRouterClient
 except ModuleNotFoundError:
-    from agent_workspace.hr_agent_v2.agent import HRAgent
-    from agent_workspace.hr_agent_v2.openrouter_client import OpenRouterClient
+    from agent_workspace.workflow_agent.agent import HRAgent
+    from agent_workspace.workflow_agent.openrouter_client import OpenRouterClient
 
 
 def load_env():

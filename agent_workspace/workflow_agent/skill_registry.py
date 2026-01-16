@@ -20,9 +20,11 @@ class SkillRegistry:
         if not self.skills_dir.exists():
             return skills
 
-        hr_scopes_examples = self.skills_dir / "HR-scopes" / "examples"
-        if hr_scopes_examples.exists():
-            for example_md in sorted(hr_scopes_examples.glob("*.md")):
+        for scope_dir in sorted([p for p in self.skills_dir.iterdir() if p.is_dir()]):
+            examples_dir = scope_dir / "examples"
+            if not examples_dir.exists():
+                continue
+            for example_md in sorted(examples_dir.glob("*.md")):
                 try:
                     content = example_md.read_text(encoding="utf-8")
                 except OSError:
@@ -32,7 +34,7 @@ class SkillRegistry:
 
         candidates = list(self.skills_dir.rglob("SKILL.md")) + list(self.skills_dir.rglob("SKILLS.md"))
         for skill_md in sorted(set(candidates)):
-            if skill_md.name == "SKILL.md" and skill_md.parent.name == "HR-scopes":
+            if skill_md.name == "SKILL.md" and skill_md.parent.name.endswith("-scopes") and (skill_md.parent / "examples").exists():
                 continue
             try:
                 content = skill_md.read_text(encoding="utf-8")

@@ -1,0 +1,9 @@
+{
+  "name": "jira",
+  "description": "Ticketing for purchase requests and vendor onboarding.",
+  "python_module": "mcp_tools.jira",
+  "tools": [
+    "create_ticket"
+  ]
+}
+

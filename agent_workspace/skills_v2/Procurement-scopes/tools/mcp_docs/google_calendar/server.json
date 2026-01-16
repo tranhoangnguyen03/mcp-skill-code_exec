@@ -1,0 +1,9 @@
+{
+  "name": "google_calendar",
+  "description": "Schedule vendor onboarding kickoff meetings.",
+  "python_module": "mcp_tools.google_calendar",
+  "tools": [
+    "create_event"
+  ]
+}
+

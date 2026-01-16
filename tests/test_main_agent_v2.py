@@ -1,7 +1,7 @@
 import os
 
-from agent_workspace.main_agent_v2 import build_agent
-from agent_workspace.hr_agent_v2.agent import HRAgent
+from agent_workspace.main import build_agent
+from agent_workspace.workflow_agent.agent import HRAgent
 
 
 def test_build_agent_v2_builds_agent(monkeypatch):

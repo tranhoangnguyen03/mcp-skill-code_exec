@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from agent_workspace.hr_agent_v2.skill_registry import SkillRegistry
+from agent_workspace.workflow_agent.skill_registry import SkillRegistry
 
 
 def test_skill_registry_v2_finds_hr_scopes_skill():

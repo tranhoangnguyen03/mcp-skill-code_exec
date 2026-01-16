@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from agent_workspace.hr_agent_v2.code_executor import PythonCodeExecutor
+from agent_workspace.workflow_agent.code_executor import PythonCodeExecutor
 
 
 def test_code_executor_v2_imports_tools_from_v2_path():

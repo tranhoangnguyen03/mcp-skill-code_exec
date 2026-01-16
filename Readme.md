@@ -20,7 +20,7 @@ This repo includes mock integrations for BambooHR, Jira, and Slack under `agent_
 
 ```
 agent_workspace/
-  hr_agent_v2/             Agent logic (plan → codegen → execute → respond)
+  workflow_agent/          Agent logic (plan → codegen → execute → respond)
   prompts/                 Prompts (plan, codegen, respond, custom_skill)
   skills_v2/               Skill group and example manuals
     HR-scopes/
@@ -28,6 +28,14 @@ agent_workspace/
       tools/
         mcp_tools/         Mock integrations (bamboo_hr, jira, slack)
         mcp_docs/          MCP-style tool documentation (server.json + examples)
+    Recruitment-scopes/
+      examples/            Skill manuals (markdown examples)
+      tools/
+        mcp_docs/          Scope-specific MCP docs (progressive disclosure)
+    Procurement-scopes/
+      examples/            Skill manuals (markdown examples)
+      tools/
+        mcp_docs/          Scope-specific MCP docs (progressive disclosure)
   .env                     Local OpenRouter config (do not commit)
 tests/                     Unit tests
 ```
@@ -66,7 +74,7 @@ open_router_model_name=...
 ### CLI
 
 ```bash
-python agent_workspace/main_agent_v2.py
+python agent_workspace/main.py
 ```
 
 ### Chat UI (Chainlit)

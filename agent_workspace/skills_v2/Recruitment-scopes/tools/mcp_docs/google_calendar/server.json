@@ -1,0 +1,9 @@
+{
+  "name": "google_calendar",
+  "description": "Create interview calendar holds.",
+  "python_module": "mcp_tools.google_calendar",
+  "tools": [
+    "create_event"
+  ]
+}
+

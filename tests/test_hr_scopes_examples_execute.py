@@ -1,6 +1,6 @@
 import json
 
-from agent_workspace.hr_agent_v2.agent import HRAgent
+from agent_workspace.workflow_agent.agent import HRAgent
 
 
 class ExampleLLM:

@@ -1,0 +1,9 @@
+{
+  "name": "slack",
+  "description": "Procurement coordination messages.",
+  "python_module": "mcp_tools.slack",
+  "tools": [
+    "post_message"
+  ]
+}
+

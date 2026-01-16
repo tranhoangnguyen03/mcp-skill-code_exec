@@ -174,6 +174,44 @@ for u in eligible:
 print("cycle", cycle["id"])
 print("eligible", len(eligible))
 """,
+    "Schedule Candidate Interviews": """
+import mcp_tools.google_calendar as gcal
+import mcp_tools.jira as jira
+import mcp_tools.slack as slack
+
+ticket = jira.create_ticket(
+    project="RECR",
+    summary="Schedule interviews: candidate@example.com (Backend Engineer)",
+    priority="High",
+)
+event_ids = []
+for email in ["interviewer1@company.com", "interviewer2@company.com"]:
+    event = gcal.create_event(
+        email=email,
+        title="Interview: candidate@example.com",
+        start_time="2026-01-20T10:00:00",
+        end_time="2026-01-20T11:00:00",
+    )
+    event_ids.append(event["id"])
+slack.post_message(
+    channel="#recruiting",
+    message=f"Scheduled interviews ({len(event_ids)}) for candidate@example.com. Ticket {ticket}.",
+)
+print("ticket", ticket)
+print("events", len(event_ids))
+""",
+    "Create Purchase Request": """
+import mcp_tools.jira as jira
+import mcp_tools.slack as slack
+
+ticket = jira.create_ticket(
+    project="PROC",
+    summary="Purchase request: Laptop for Engineering ($2500)",
+    priority="High",
+)
+slack.post_message(channel="#procurement", message=f"New purchase request: {ticket}. Please review.")
+print("ticket", ticket)
+""",
 }
 
 
@@ -181,6 +219,7 @@ SCENARIOS: list[Scenario] = [
     Scenario(
         name="Daily new hires digest",
         expected_skill="Daily New Hires Digest",
+        expected_skill_group="HR-scopes",
         user_requests=[
             "Run the daily new hires digest for today",
             "Post a new hires summary in #hr",
@@ -200,6 +239,7 @@ SCENARIOS: list[Scenario] = [
     Scenario(
         name="Onboard new hires",
         expected_skill="Onboard New Hires",
+        expected_skill_group="HR-scopes",
         user_requests=[
             "Onboard today's new hires",
             "Create IT onboarding tickets and DM new hires",
@@ -221,6 +261,7 @@ SCENARIOS: list[Scenario] = [
     Scenario(
         name="Probation check-in reminders",
         expected_skill="Probation Check-in Reminders",
+        expected_skill_group="HR-scopes",
         user_requests=[
             "Send probation check-in reminders",
             "Who needs a 90-day check-in this week? Notify managers",
@@ -239,6 +280,7 @@ SCENARIOS: list[Scenario] = [
     Scenario(
         name="Offboard employee",
         expected_skill="Offboard Employee",
+        expected_skill_group="HR-scopes",
         user_requests=[
             "Offboard Maya Lopez effective today",
             "Start offboarding for Maya and notify her manager",
@@ -258,6 +300,7 @@ SCENARIOS: list[Scenario] = [
     Scenario(
         name="Offboarding queue review",
         expected_skill="Offboarding Queue Review",
+        expected_skill_group="HR-scopes",
         user_requests=[
             "Review offboarding queue and create IT tickets",
             "Anyone currently offboarding that needs processing?",
@@ -276,6 +319,7 @@ SCENARIOS: list[Scenario] = [
     Scenario(
         name="Role change access review",
         expected_skill="Role Change + Access Review",
+        expected_skill_group="HR-scopes",
         user_requests=[
             "Role change: update Charlie Davis role and start access review",
             "Create an access review ticket for Charlie after role update",
@@ -294,6 +338,7 @@ SCENARIOS: list[Scenario] = [
     Scenario(
         name="Leave and absence logistics",
         expected_skill="Leave & Absence Management",
+        expected_skill_group="HR-scopes",
         user_requests=[
             "Set OOO calendar and email auto-reply for Alice next week",
             "Approved leave: block calendar and notify team for Alice",
@@ -315,6 +360,7 @@ SCENARIOS: list[Scenario] = [
     Scenario(
         name="Performance review cycle kickoff",
         expected_skill="Performance Review Cycle",
+        expected_skill_group="HR-scopes",
         user_requests=[
             "Kick off a Q4 performance review cycle and notify eligible employees",
             "Start quarterly reviews; find eligible employees and DM them",
@@ -330,6 +376,49 @@ SCENARIOS: list[Scenario] = [
             r"eligible 2",
         ],
         required_response_keywords=["completed", "performance review cycle"],
+    ),
+    Scenario(
+        name="Schedule candidate interviews",
+        expected_skill="Schedule Candidate Interviews",
+        expected_skill_group="Recruitment-scopes",
+        user_requests=[
+            "Schedule interviews for candidate@example.com next Tuesday at 10am",
+            "Coordinate interviews for a Backend Engineer candidate and notify #recruiting",
+        ],
+        required_code_patterns=[
+            r"import mcp_tools\.google_calendar",
+            r"import mcp_tools\.jira",
+            r"import mcp_tools\.slack",
+            r"jira\.create_ticket\(",
+            r"gcal\.create_event\(",
+            r"slack\.post_message\(",
+        ],
+        required_log_patterns=[
+            r"\[Jira\] Created ticket RECR-",
+            r"\[Slack\] Posted in #recruiting:",
+            r"events 2",
+        ],
+        required_response_keywords=["completed", "schedule candidate interviews"],
+    ),
+    Scenario(
+        name="Create purchase request",
+        expected_skill="Create Purchase Request",
+        expected_skill_group="Procurement-scopes",
+        user_requests=[
+            "Create a purchase request for a laptop for Engineering",
+            "Open a procurement ticket for a $2500 laptop and notify #procurement",
+        ],
+        required_code_patterns=[
+            r"import mcp_tools\.jira",
+            r"import mcp_tools\.slack",
+            r"jira\.create_ticket\(",
+            r"slack\.post_message\(",
+        ],
+        required_log_patterns=[
+            r"\[Jira\] Created ticket PROC-",
+            r"\[Slack\] Posted in #procurement:",
+        ],
+        required_response_keywords=["completed", "create purchase request"],
     ),
 ]
 
@@ -355,7 +444,7 @@ def test_hr_scopes_scenarios_pass_heuristic_qualitative_evaluation(scenario: Sce
     run = run_scenario(llm=llm, scenario=scenario, user_request=user_request)
 
     assert run.plan.get("action") == "execute_skill"
-    assert run.plan.get("skill_group") == "HR-scopes"
+    assert run.plan.get("skill_group") == scenario.expected_skill_group
 
     verdict = evaluate_with_judge(judge=HeuristicJudge(), scenario=scenario, run=run)
     assert verdict.passed, "; ".join(verdict.notes)

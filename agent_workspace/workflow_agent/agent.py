@@ -28,11 +28,12 @@ class HRAgent:
         self.max_attempts = max(1, int(max_attempts))
         self.workspace_dir = Path(__file__).resolve().parents[1]
         self.prompts = PromptStore(self.workspace_dir / "prompts")
-        self.skills = SkillRegistry(self.workspace_dir / "skills_v2")
+        self.skills_v2_dir = self.workspace_dir / "skills_v2"
+        self.skills = SkillRegistry(self.skills_v2_dir)
 
-        v2_tools_root = self.workspace_dir / "skills_v2" / "HR-scopes" / "tools"
-        self.mcp_docs = MCPDocsRegistry(v2_tools_root / "mcp_docs", tools_pythonpath=v2_tools_root)
-        self.executor = PythonCodeExecutor(self.workspace_dir, extra_pythonpaths=[v2_tools_root])
+        self.default_tools_root = self.skills_v2_dir / "HR-scopes" / "tools"
+        self.default_docs_dir = self.default_tools_root / "mcp_docs"
+        self.executor = PythonCodeExecutor(self.workspace_dir, extra_pythonpaths=[self.default_tools_root])
 
     async def run(self, user_message: str) -> AgentResult:
         plan, plan_json, selected_skill = self.plan(user_message=user_message)
@@ -114,7 +115,7 @@ class HRAgent:
         previous_error: str = "",
         previous_code: str = "",
     ) -> str:
-        tool_contracts = self.mcp_docs.render_tool_contracts()
+        tool_contracts = self._docs_registry_for_plan(plan_json=plan_json).render_tool_contracts()
         code_prompt = self.prompts.load("codegen.txt").format(
             user_message=user_message,
             plan_json=plan_json,
@@ -129,8 +130,10 @@ class HRAgent:
         compile(extracted, "<generated>", "exec")
         return extracted
 
-    def execute(self, code: str) -> ExecutionResult:
-        return self.executor.run(code)
+    def execute(self, code: str, *, plan_json: str | None = None) -> ExecutionResult:
+        tools_root = self._tools_root_for_plan(plan_json=plan_json)
+        extra = [tools_root] if tools_root and tools_root != self.default_tools_root else None
+        return self.executor.run(code, extra_pythonpaths=extra)
 
     def respond(
         self,
@@ -185,7 +188,7 @@ class HRAgent:
                 continue
 
             last_code = code
-            exec_result = self.execute(code=code)
+            exec_result = self.execute(code=code, plan_json=plan_json)
             last_exec = exec_result
             if exec_result.exit_code == 0:
                 return code, exec_result, attempts_used
@@ -193,6 +196,38 @@ class HRAgent:
             last_error = exec_result.stderr or f"Execution failed with exit_code={exec_result.exit_code}"
 
         return last_code, last_exec, attempts_used
+
+    def _docs_registry_for_plan(self, *, plan_json: str) -> MCPDocsRegistry:
+        docs_dir = self.default_docs_dir
+        tools_pythonpath = self.default_tools_root
+        try:
+            data = json.loads(plan_json)
+        except Exception:
+            data = {}
+        group = data.get("skill_group") if isinstance(data, dict) else None
+        if isinstance(group, str) and group.strip():
+            group_tools_root = self.skills_v2_dir / group.strip() / "tools"
+            group_docs_dir = group_tools_root / "mcp_docs"
+            if group_docs_dir.exists():
+                docs_dir = group_docs_dir
+            if (group_tools_root / "mcp_tools").exists():
+                tools_pythonpath = group_tools_root
+        return MCPDocsRegistry(docs_dir, tools_pythonpath=tools_pythonpath)
+
+    def _tools_root_for_plan(self, *, plan_json: str | None) -> Path | None:
+        if not plan_json:
+            return self.default_tools_root
+        try:
+            data = json.loads(plan_json)
+        except Exception:
+            return self.default_tools_root
+        group = data.get("skill_group") if isinstance(data, dict) else None
+        if not isinstance(group, str) or not group.strip():
+            return self.default_tools_root
+        group_tools_root = self.skills_v2_dir / group.strip() / "tools"
+        if (group_tools_root / "mcp_tools").exists():
+            return group_tools_root
+        return self.default_tools_root
 
 
 def _parse_plan(plan_text: str, skills):
@@ -256,10 +291,15 @@ def _normalize_skill_name(value: str) -> str:
 
 
 def _infer_skill_group(skill_path: Path) -> str | None:
-    normalized = str(skill_path).replace("\\", "/")
-    if "/skills_v2/HR-scopes/" in normalized:
-        return "HR-scopes"
-    return None
+    parts = list(skill_path.parts)
+    try:
+        idx = parts.index("skills_v2")
+    except ValueError:
+        return None
+    if idx + 1 >= len(parts):
+        return None
+    group = parts[idx + 1]
+    return group or None
 
 
 def _extract_logic_flow_steps(skill_md: str) -> list[str]:

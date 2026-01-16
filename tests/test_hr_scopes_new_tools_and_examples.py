@@ -4,8 +4,8 @@ import sys
 from contextlib import contextmanager
 from pathlib import Path
 
-from agent_workspace.hr_agent_v2.agent import _extract_logic_flow_steps
-from agent_workspace.hr_agent_v2.skill_registry import SkillRegistry
+from agent_workspace.workflow_agent.agent import _extract_logic_flow_steps, _infer_skill_group
+from agent_workspace.workflow_agent.skill_registry import SkillRegistry
 
 
 @contextmanager
@@ -82,7 +82,7 @@ def test_new_mcp_tools_lattice_create_cycle_and_eligibility():
         assert "Charlie Davis" in names
 
 
-def test_hr_scopes_new_examples_are_discoverable_and_have_logic_flow_steps():
+def test_scopes_examples_are_discoverable_and_have_logic_flow_steps():
     repo_root = Path(__file__).resolve().parents[1]
     skills_dir = repo_root / "agent_workspace" / "skills_v2"
     registry = SkillRegistry(skills_dir)
@@ -92,7 +92,16 @@ def test_hr_scopes_new_examples_are_discoverable_and_have_logic_flow_steps():
 
     assert "Leave & Absence Management" in by_name
     assert "Performance Review Cycle" in by_name
+    assert "Schedule Candidate Interviews" in by_name
+    assert "Create Purchase Request" in by_name
+    assert _infer_skill_group(by_name["Schedule Candidate Interviews"].path) == "Recruitment-scopes"
+    assert _infer_skill_group(by_name["Create Purchase Request"].path) == "Procurement-scopes"
 
-    for name in ["Leave & Absence Management", "Performance Review Cycle"]:
+    for name in [
+        "Leave & Absence Management",
+        "Performance Review Cycle",
+        "Schedule Candidate Interviews",
+        "Create Purchase Request",
+    ]:
         steps = _extract_logic_flow_steps(by_name[name].content)
         assert steps, f"expected non-empty logic flow steps for {name}"

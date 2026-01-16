@@ -6,7 +6,7 @@ import re
 from dataclasses import dataclass
 from typing import Protocol
 
-from agent_workspace.hr_agent_v2.openrouter_client import LLMMessage, OpenRouterClient
+from agent_workspace.workflow_agent.openrouter_client import LLMMessage, OpenRouterClient
 
 from .scenario_harness import Scenario, expected_logic_flow_steps
 

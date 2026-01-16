@@ -1,0 +1,10 @@
+{
+  "name": "slack",
+  "description": "Recruiting coordination messages and reminders.",
+  "python_module": "mcp_tools.slack",
+  "tools": [
+    "send_dm",
+    "post_message"
+  ]
+}
+

@@ -2,9 +2,9 @@ import asyncio
 
 import chainlit as cl
 
-from agent_workspace.hr_agent_v2.agent import HRAgent
-from agent_workspace.hr_agent_v2.types import ExecutionResult
-from agent_workspace.main_agent_v2 import build_agent, load_env
+from agent_workspace.workflow_agent.agent import HRAgent
+from agent_workspace.workflow_agent.types import ExecutionResult
+from agent_workspace.main import build_agent, load_env
 
 
 @cl.on_chat_start
