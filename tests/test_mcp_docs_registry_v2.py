@@ -11,4 +11,5 @@ def test_mcp_docs_registry_v2_renders_tools_and_examples():
     rendered = MCPDocsRegistry(docs_dir, tools_pythonpath=v2_tools_root).render_tool_contracts()
     assert "Tool: get_new_hires" in rendered
     assert "get_new_hires(" in rendered
+    assert "import mcp_tools.bamboo_hr as bamboo_hr" in rendered
     assert "Examples" in rendered

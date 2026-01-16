@@ -1,0 +1,9 @@
+{
+  "name": "google_calendar",
+  "description": "Mock Google Calendar operations.",
+  "python_module": "mcp_tools.google_calendar",
+  "tools": [
+    "create_event",
+    "get_events"
+  ]
+}

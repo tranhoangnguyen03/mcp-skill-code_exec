@@ -21,6 +21,7 @@ Previous code:
 
 Constraints:
 - Use only Python standard library plus the local package "mcp_tools".
+- Import tool modules from "mcp_tools" (e.g. `import mcp_tools.bamboo_hr as bamboo_hr`, `import mcp_tools.slack as slack`).
 - Do not import chainlit.
 - Do not use input(), sys.argv, or any interactive prompts.
 - Do not wait/sleep, start servers, or run infinite loops.

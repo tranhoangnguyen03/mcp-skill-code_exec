@@ -1,0 +1,9 @@
+{
+  "name": "lattice",
+  "description": "Mock Lattice performance review operations.",
+  "python_module": "mcp_tools.lattice",
+  "tools": [
+    "create_cycle",
+    "get_eligible_employees"
+  ]
+}

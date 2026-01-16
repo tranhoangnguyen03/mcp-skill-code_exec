@@ -1,0 +1,9 @@
+{
+  "name": "gmail",
+  "description": "Mock Gmail operations.",
+  "python_module": "mcp_tools.gmail",
+  "tools": [
+    "set_auto_responder",
+    "get_auto_responder"
+  ]
+}

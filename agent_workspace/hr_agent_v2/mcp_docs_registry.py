@@ -40,6 +40,12 @@ class MCPDocsRegistry:
         tool_name = tool_dir.name
 
         fn = None
+        import_lines: list[str] = []
+        python_module = server_json.get("python_module") if isinstance(server_json, dict) else None
+        if isinstance(python_module, str):
+            import_lines.append(f"import {python_module} as {mcp_name}")
+        else:
+            import_lines.append(f"import mcp_tools.{mcp_name} as {mcp_name}")
         with _maybe_sys_path(self.tools_pythonpath):
             try:
                 module = import_module(f"mcp_tools.{mcp_name}")
@@ -48,7 +54,6 @@ class MCPDocsRegistry:
                 fn = None
 
             if fn is None:
-                python_module = server_json.get("python_module") if isinstance(server_json, dict) else None
                 tools = server_json.get("tools") if isinstance(server_json, dict) else None
                 if isinstance(python_module, str) and isinstance(tools, list) and tool_name in set(map(str, tools)):
                     try:
@@ -58,6 +63,10 @@ class MCPDocsRegistry:
                         fn = None
 
         lines: list[str] = []
+        if import_lines:
+            lines.append("```python")
+            lines.extend(import_lines)
+            lines.append("```")
         if fn is not None:
             try:
                 sig = str(signature(fn))
