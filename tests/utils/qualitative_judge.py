@@ -1,12 +1,9 @@
 from __future__ import annotations
 
 import json
-import os
 import re
 from dataclasses import dataclass
 from typing import Protocol
-
-from agent_workspace.workflow_agent.openrouter_client import LLMMessage, OpenRouterClient
 
 from .scenario_harness import Scenario, expected_logic_flow_steps
 
@@ -23,7 +20,7 @@ class JudgeVerdict:
 
 
 class JudgeLLM(Protocol):
-    def chat(self, messages: list[LLMMessage], temperature: float = 0.2) -> str: ...
+    def chat(self, prompt: str, temperature: float = 0.2) -> str: ...
 
 
 def build_judge_prompt(*, scenario: Scenario, run) -> str:
@@ -32,6 +29,7 @@ def build_judge_prompt(*, scenario: Scenario, run) -> str:
     required_code = "\n".join([f"- {p}" for p in scenario.required_code_patterns]) or "(none)"
     required_logs = "\n".join([f"- {p}" for p in scenario.required_log_patterns]) or "(none)"
     required_response = ", ".join(scenario.required_response_keywords) or "(none)"
+    expected_skill = scenario.expected_skill or "(none)"
 
     return (
         "You are a strict evaluator for an HR workflow agent.\n\n"
@@ -46,7 +44,8 @@ def build_judge_prompt(*, scenario: Scenario, run) -> str:
         '  \"notes\": [\"short reason\", ...]\n'
         "}\n\n"
         f"Scenario: {scenario.name}\n"
-        f"Expected skill: {scenario.expected_skill}\n"
+        f"Expected action: {scenario.expected_action}\n"
+        f"Expected skill: {expected_skill}\n"
         f"User request: {run.user_request}\n\n"
         "Expected steps (from skill Logic Flow):\n"
         f"{expected_steps_text}\n\n"
@@ -87,9 +86,9 @@ def parse_verdict(text: str) -> JudgeVerdict:
 
 
 class HeuristicJudge:
-    def chat(self, messages: list[LLMMessage], temperature: float = 0.2) -> str:
-        prompt = messages[-1].content
-        scenario = _extract_between(prompt, "Scenario: ", "\nExpected skill:").strip()
+    def chat(self, prompt: str, temperature: float = 0.2) -> str:
+        scenario = _extract_between(prompt, "Scenario: ", "\nExpected action:").strip()
+        expected_action = _extract_between(prompt, "Expected action: ", "\nExpected skill:").strip()
         expected_skill = _extract_between(prompt, "Expected skill: ", "\nUser request:").strip()
         user_request = _extract_between(prompt, "User request: ", "\n\nExpected steps").strip()
         plan_json = _extract_between(prompt, "Agent plan JSON:\n", "\n\nGenerated code:\n")
@@ -113,14 +112,19 @@ class HeuristicJudge:
 
         notes: list[str] = []
 
-        skill_ok = plan.get("skill_name") == expected_skill and plan.get("action") == "execute_skill"
-        if not skill_ok:
-            notes.append(f"skill mismatch: got={plan.get('skill_name')} expected={expected_skill}")
+        if expected_action == "custom_script":
+            skill_ok = plan.get("action") == "custom_script"
+            if not skill_ok:
+                notes.append(f"action mismatch: got={plan.get('action')} expected=custom_script")
+        else:
+            skill_ok = plan.get("skill_name") == expected_skill and plan.get("action") == "execute_skill"
+            if not skill_ok:
+                notes.append(f"skill mismatch: got={plan.get('skill_name')} expected={expected_skill}")
 
-        expected_steps = expected_logic_flow_steps(expected_skill)
+        expected_steps = expected_logic_flow_steps(None if expected_skill == "(none)" else expected_skill)
         actual_steps = plan.get("steps") or []
         steps_ok = True
-        if expected_steps:
+        if expected_steps and expected_action == "execute_skill":
             overlap = set(map(str, actual_steps)).intersection(set(map(str, expected_steps)))
             steps_ok = len(overlap) >= max(1, min(3, len(expected_steps)))
             if not steps_ok:
@@ -161,28 +165,9 @@ class HeuristicJudge:
         return json.dumps(verdict.__dict__, ensure_ascii=False)
 
 
-class OpenRouterJudge:
-    def __init__(self):
-        self.client = OpenRouterClient(
-            api_key=os.getenv("open_router_api_key"),
-            model=os.getenv("open_router_model_name"),
-        )
-
-    def chat(self, messages: list[LLMMessage], temperature: float = 0.2) -> str:
-        import time
-
-        last = ""
-        for attempt in range(1, 4):
-            last = self.client.chat(messages, temperature=temperature)
-            if last and last.strip():
-                return last
-            time.sleep(0.5 * attempt)
-        return last
-
-
 def evaluate_with_judge(*, judge: JudgeLLM, scenario: Scenario, run) -> JudgeVerdict:
     prompt = build_judge_prompt(scenario=scenario, run=run)
-    out = judge.chat([LLMMessage(role="user", content=prompt)], temperature=0.0)
+    out = judge.chat(prompt, temperature=0.0)
     return parse_verdict(out)
 
 

@@ -94,6 +94,20 @@ class BamlSyncClient:
     def parse_stream(self):
       return self.__llm_stream_parser
 
+    def WorkflowChat(self, user_message: str,skills_readme: str,custom_skill_md: str,
+        baml_options: BamlCallOptions = {},
+    ) -> str:
+        # Check if on_tick is provided
+        if 'on_tick' in baml_options:
+            __stream__ = self.stream.WorkflowChat(user_message=user_message,skills_readme=skills_readme,custom_skill_md=custom_skill_md,
+                baml_options=baml_options)
+            return __stream__.get_final_response()
+        else:
+            # Original non-streaming code
+            __result__ = self.__options.merge_options(baml_options).call_function_sync(function_name="WorkflowChat", args={
+                "user_message": user_message,"skills_readme": skills_readme,"custom_skill_md": custom_skill_md,
+            })
+            return typing.cast(str, __result__.cast_to(types, types, stream_types, False, __runtime__))
     def WorkflowCodegen(self, user_message: str,plan_json: str,skill_md: str,tool_contracts: str,attempt: int,previous_error: str,previous_code: str,
         baml_options: BamlCallOptions = {},
     ) -> str:
@@ -122,6 +136,34 @@ class BamlSyncClient:
                 "user_message": user_message,"skills_readme": skills_readme,"skill_names": skill_names,
             })
             return typing.cast(types.Plan, __result__.cast_to(types, types, stream_types, False, __runtime__))
+    def WorkflowPlanReview(self, user_message: str,proposed_plan_json: str,selected_skill_md: str,
+        baml_options: BamlCallOptions = {},
+    ) -> types.Plan:
+        # Check if on_tick is provided
+        if 'on_tick' in baml_options:
+            __stream__ = self.stream.WorkflowPlanReview(user_message=user_message,proposed_plan_json=proposed_plan_json,selected_skill_md=selected_skill_md,
+                baml_options=baml_options)
+            return __stream__.get_final_response()
+        else:
+            # Original non-streaming code
+            __result__ = self.__options.merge_options(baml_options).call_function_sync(function_name="WorkflowPlanReview", args={
+                "user_message": user_message,"proposed_plan_json": proposed_plan_json,"selected_skill_md": selected_skill_md,
+            })
+            return typing.cast(types.Plan, __result__.cast_to(types, types, stream_types, False, __runtime__))
+    def WorkflowRespond(self, user_message: str,plan_json: str,executed_code: str,exec_stdout: str,exec_stderr: str,exit_code: int,attempts: int,
+        baml_options: BamlCallOptions = {},
+    ) -> str:
+        # Check if on_tick is provided
+        if 'on_tick' in baml_options:
+            __stream__ = self.stream.WorkflowRespond(user_message=user_message,plan_json=plan_json,executed_code=executed_code,exec_stdout=exec_stdout,exec_stderr=exec_stderr,exit_code=exit_code,attempts=attempts,
+                baml_options=baml_options)
+            return __stream__.get_final_response()
+        else:
+            # Original non-streaming code
+            __result__ = self.__options.merge_options(baml_options).call_function_sync(function_name="WorkflowRespond", args={
+                "user_message": user_message,"plan_json": plan_json,"executed_code": executed_code,"exec_stdout": exec_stdout,"exec_stderr": exec_stderr,"exit_code": exit_code,"attempts": attempts,
+            })
+            return typing.cast(str, __result__.cast_to(types, types, stream_types, False, __runtime__))
     
 
 
@@ -131,6 +173,18 @@ class BamlStreamClient:
     def __init__(self, options: DoNotUseDirectlyCallManager):
         self.__options = options
 
+    def WorkflowChat(self, user_message: str,skills_readme: str,custom_skill_md: str,
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.BamlSyncStream[str, str]:
+        __ctx__, __result__ = self.__options.merge_options(baml_options).create_sync_stream(function_name="WorkflowChat", args={
+            "user_message": user_message,"skills_readme": skills_readme,"custom_skill_md": custom_skill_md,
+        })
+        return baml_py.BamlSyncStream[str, str](
+          __result__,
+          lambda x: typing.cast(str, x.cast_to(types, types, stream_types, True, __runtime__)),
+          lambda x: typing.cast(str, x.cast_to(types, types, stream_types, False, __runtime__)),
+          __ctx__,
+        )
     def WorkflowCodegen(self, user_message: str,plan_json: str,skill_md: str,tool_contracts: str,attempt: int,previous_error: str,previous_code: str,
         baml_options: BamlCallOptions = {},
     ) -> baml_py.BamlSyncStream[str, str]:
@@ -155,6 +209,30 @@ class BamlStreamClient:
           lambda x: typing.cast(types.Plan, x.cast_to(types, types, stream_types, False, __runtime__)),
           __ctx__,
         )
+    def WorkflowPlanReview(self, user_message: str,proposed_plan_json: str,selected_skill_md: str,
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.BamlSyncStream[stream_types.Plan, types.Plan]:
+        __ctx__, __result__ = self.__options.merge_options(baml_options).create_sync_stream(function_name="WorkflowPlanReview", args={
+            "user_message": user_message,"proposed_plan_json": proposed_plan_json,"selected_skill_md": selected_skill_md,
+        })
+        return baml_py.BamlSyncStream[stream_types.Plan, types.Plan](
+          __result__,
+          lambda x: typing.cast(stream_types.Plan, x.cast_to(types, types, stream_types, True, __runtime__)),
+          lambda x: typing.cast(types.Plan, x.cast_to(types, types, stream_types, False, __runtime__)),
+          __ctx__,
+        )
+    def WorkflowRespond(self, user_message: str,plan_json: str,executed_code: str,exec_stdout: str,exec_stderr: str,exit_code: int,attempts: int,
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.BamlSyncStream[str, str]:
+        __ctx__, __result__ = self.__options.merge_options(baml_options).create_sync_stream(function_name="WorkflowRespond", args={
+            "user_message": user_message,"plan_json": plan_json,"executed_code": executed_code,"exec_stdout": exec_stdout,"exec_stderr": exec_stderr,"exit_code": exit_code,"attempts": attempts,
+        })
+        return baml_py.BamlSyncStream[str, str](
+          __result__,
+          lambda x: typing.cast(str, x.cast_to(types, types, stream_types, True, __runtime__)),
+          lambda x: typing.cast(str, x.cast_to(types, types, stream_types, False, __runtime__)),
+          __ctx__,
+        )
     
 
 class BamlHttpRequestClient:
@@ -163,6 +241,13 @@ class BamlHttpRequestClient:
     def __init__(self, options: DoNotUseDirectlyCallManager):
         self.__options = options
 
+    def WorkflowChat(self, user_message: str,skills_readme: str,custom_skill_md: str,
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.baml_py.HTTPRequest:
+        __result__ = self.__options.merge_options(baml_options).create_http_request_sync(function_name="WorkflowChat", args={
+            "user_message": user_message,"skills_readme": skills_readme,"custom_skill_md": custom_skill_md,
+        }, mode="request")
+        return __result__
     def WorkflowCodegen(self, user_message: str,plan_json: str,skill_md: str,tool_contracts: str,attempt: int,previous_error: str,previous_code: str,
         baml_options: BamlCallOptions = {},
     ) -> baml_py.baml_py.HTTPRequest:
@@ -177,6 +262,20 @@ class BamlHttpRequestClient:
             "user_message": user_message,"skills_readme": skills_readme,"skill_names": skill_names,
         }, mode="request")
         return __result__
+    def WorkflowPlanReview(self, user_message: str,proposed_plan_json: str,selected_skill_md: str,
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.baml_py.HTTPRequest:
+        __result__ = self.__options.merge_options(baml_options).create_http_request_sync(function_name="WorkflowPlanReview", args={
+            "user_message": user_message,"proposed_plan_json": proposed_plan_json,"selected_skill_md": selected_skill_md,
+        }, mode="request")
+        return __result__
+    def WorkflowRespond(self, user_message: str,plan_json: str,executed_code: str,exec_stdout: str,exec_stderr: str,exit_code: int,attempts: int,
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.baml_py.HTTPRequest:
+        __result__ = self.__options.merge_options(baml_options).create_http_request_sync(function_name="WorkflowRespond", args={
+            "user_message": user_message,"plan_json": plan_json,"executed_code": executed_code,"exec_stdout": exec_stdout,"exec_stderr": exec_stderr,"exit_code": exit_code,"attempts": attempts,
+        }, mode="request")
+        return __result__
     
 
 class BamlHttpStreamRequestClient:
@@ -185,6 +284,13 @@ class BamlHttpStreamRequestClient:
     def __init__(self, options: DoNotUseDirectlyCallManager):
         self.__options = options
 
+    def WorkflowChat(self, user_message: str,skills_readme: str,custom_skill_md: str,
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.baml_py.HTTPRequest:
+        __result__ = self.__options.merge_options(baml_options).create_http_request_sync(function_name="WorkflowChat", args={
+            "user_message": user_message,"skills_readme": skills_readme,"custom_skill_md": custom_skill_md,
+        }, mode="stream")
+        return __result__
     def WorkflowCodegen(self, user_message: str,plan_json: str,skill_md: str,tool_contracts: str,attempt: int,previous_error: str,previous_code: str,
         baml_options: BamlCallOptions = {},
     ) -> baml_py.baml_py.HTTPRequest:
@@ -197,6 +303,20 @@ class BamlHttpStreamRequestClient:
     ) -> baml_py.baml_py.HTTPRequest:
         __result__ = self.__options.merge_options(baml_options).create_http_request_sync(function_name="WorkflowPlan", args={
             "user_message": user_message,"skills_readme": skills_readme,"skill_names": skill_names,
+        }, mode="stream")
+        return __result__
+    def WorkflowPlanReview(self, user_message: str,proposed_plan_json: str,selected_skill_md: str,
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.baml_py.HTTPRequest:
+        __result__ = self.__options.merge_options(baml_options).create_http_request_sync(function_name="WorkflowPlanReview", args={
+            "user_message": user_message,"proposed_plan_json": proposed_plan_json,"selected_skill_md": selected_skill_md,
+        }, mode="stream")
+        return __result__
+    def WorkflowRespond(self, user_message: str,plan_json: str,executed_code: str,exec_stdout: str,exec_stderr: str,exit_code: int,attempts: int,
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.baml_py.HTTPRequest:
+        __result__ = self.__options.merge_options(baml_options).create_http_request_sync(function_name="WorkflowRespond", args={
+            "user_message": user_message,"plan_json": plan_json,"executed_code": executed_code,"exec_stdout": exec_stdout,"exec_stderr": exec_stderr,"exit_code": exit_code,"attempts": attempts,
         }, mode="stream")
         return __result__
     

@@ -5,11 +5,9 @@ import re
 from dataclasses import dataclass
 from pathlib import Path
 
-from .baml_bridge import workflow_codegen, workflow_plan
+from .baml_bridge import workflow_chat, workflow_codegen, workflow_plan, workflow_plan_review, workflow_respond
 from .code_executor import PythonCodeExecutor
 from .mcp_docs_registry import MCPDocsRegistry
-from .openrouter_client import LLMMessage, OpenRouterClient
-from .prompts import PromptStore
 from .skill_registry import SkillRegistry
 from .types import AgentResult, ExecutionResult
 
@@ -23,18 +21,17 @@ class Plan:
     steps: list[str]
 
 
-class HRAgent:
-    def __init__(self, llm: OpenRouterClient, max_attempts: int = 3):
-        self.llm = llm
+class WorkflowAgent:
+    def __init__(self, max_attempts: int = 3):
         self.max_attempts = max(1, int(max_attempts))
         self.workspace_dir = Path(__file__).resolve().parents[1]
-        self.prompts = PromptStore(self.workspace_dir / "prompts")
         self.skills_v2_dir = self.workspace_dir / "skills_v2"
         self.skills = SkillRegistry(self.skills_v2_dir)
 
-        self.default_tools_root = self.skills_v2_dir / "HR-scopes" / "tools"
-        self.default_docs_dir = self.default_tools_root / "mcp_docs"
+        self.default_tools_root = self.workspace_dir / "tools"
+        self.default_docs_dir = self.skills_v2_dir / "HR-scopes" / "tools" / "mcp_docs"
         self.executor = PythonCodeExecutor(self.workspace_dir, extra_pythonpaths=[self.default_tools_root])
+        self.custom_skill_md_path = self.skills_v2_dir / "custom_skill.md"
 
     async def run(self, user_message: str) -> AgentResult:
         plan, plan_json, selected_skill = self.plan(user_message=user_message)
@@ -68,22 +65,12 @@ class HRAgent:
     def plan(self, user_message: str):
         skills_readme = self.skills.read_skills_readme()
         skills = self.skills.list_skills()
-
-        try:
-            plan_data = workflow_plan(
-                user_message=user_message,
-                skills_readme=skills_readme,
-                skill_names=[s.name for s in skills],
-            )
-            plan = _plan_from_dict(plan_data, skills)
-        except Exception:
-            plan_prompt = self.prompts.load("plan.txt").format(
-                user_message=user_message,
-                skills_readme=skills_readme,
-                skill_names=", ".join([s.name for s in skills]) or "(none)",
-            )
-            plan_text = self.llm.chat([LLMMessage(role="user", content=plan_prompt)], temperature=0.1)
-            plan = _parse_plan(plan_text, skills)
+        plan_data = workflow_plan(
+            user_message=user_message,
+            skills_readme=skills_readme,
+            skill_names=[s.name for s in skills],
+        )
+        plan = _plan_from_dict(plan_data, skills)
         selected_skill = None
         if plan.action == "execute_skill" and plan.skill_name:
             selected_skill = next(s for s in skills if s.name == plan.skill_name)
@@ -96,6 +83,41 @@ class HRAgent:
                 intent=plan.intent,
                 steps=skill_steps or plan.steps,
             )
+
+        proposed_plan_json = json.dumps(
+            {
+                "action": plan.action,
+                "skill_group": plan.skill_group,
+                "skill_name": plan.skill_name,
+                "intent": plan.intent,
+                "steps": plan.steps,
+            },
+            indent=2,
+            ensure_ascii=False,
+        )
+
+        if selected_skill is not None:
+            reviewed_plan_data = workflow_plan_review(
+                user_message=user_message,
+                proposed_plan_json=proposed_plan_json,
+                selected_skill_md=selected_skill.content,
+            )
+            reviewed_plan = _plan_from_dict(reviewed_plan_data, skills)
+            if reviewed_plan.action != "execute_skill":
+                plan = reviewed_plan
+                selected_skill = None
+            else:
+                plan = reviewed_plan
+                selected_skill = next(s for s in skills if s.name == plan.skill_name)
+                skill_group = _infer_skill_group(selected_skill.path)
+                skill_steps = _extract_logic_flow_steps(selected_skill.content)
+                plan = Plan(
+                    action=plan.action,
+                    skill_group=skill_group,
+                    skill_name=plan.skill_name,
+                    intent=plan.intent,
+                    steps=skill_steps or plan.steps,
+                )
 
         plan_json = json.dumps(
             {
@@ -125,27 +147,15 @@ class HRAgent:
         previous_code: str = "",
     ) -> str:
         tool_contracts = self._docs_registry_for_plan(plan_json=plan_json).render_tool_contracts()
-        try:
-            code = workflow_codegen(
-                user_message=user_message,
-                plan_json=plan_json,
-                skill_md=skill_md,
-                tool_contracts=tool_contracts,
-                attempt=attempt,
-                previous_error=previous_error,
-                previous_code=previous_code,
-            )
-        except Exception:
-            code_prompt = self.prompts.load("codegen.txt").format(
-                user_message=user_message,
-                plan_json=plan_json,
-                skill_md=skill_md,
-                tool_contracts=tool_contracts,
-                attempt=attempt,
-                previous_error=previous_error,
-                previous_code=previous_code,
-            )
-            code = self.llm.chat([LLMMessage(role="user", content=code_prompt)], temperature=0.2)
+        code = workflow_codegen(
+            user_message=user_message,
+            plan_json=plan_json,
+            skill_md=skill_md,
+            tool_contracts=tool_contracts,
+            attempt=attempt,
+            previous_error=previous_error,
+            previous_code=previous_code,
+        )
         extracted = _extract_code_block(code)
         compile(extracted, "<generated>", "exec")
         return extracted
@@ -164,7 +174,7 @@ class HRAgent:
         *,
         attempts: int,
     ) -> str:
-        respond_prompt = self.prompts.load("respond.txt").format(
+        return workflow_respond(
             user_message=user_message,
             plan_json=plan_json,
             executed_code=executed_code,
@@ -173,16 +183,16 @@ class HRAgent:
             exit_code=exec_result.exit_code,
             attempts=attempts,
         )
-        return self.llm.chat([LLMMessage(role="user", content=respond_prompt)], temperature=0.2)
 
     def chat(self, user_message: str) -> str:
-        prompt = self.prompts.load("chat.txt").format(user_message=user_message)
-        return self.llm.chat([LLMMessage(role="user", content=prompt)], temperature=0.3)
+        skills_readme = self.skills.read_skills_readme()
+        custom_skill_md = self.custom_skill_md_path.read_text(encoding="utf-8")
+        return workflow_chat(user_message=user_message, skills_readme=skills_readme, custom_skill_md=custom_skill_md)
 
     def get_skill_md(self, plan: Plan, selected_skill) -> str:
         if plan.action == "execute_skill":
             return selected_skill.content
-        return self.prompts.load("custom_skill.txt")
+        return self.custom_skill_md_path.read_text(encoding="utf-8")
 
     def generate_and_execute_with_retries(self, user_message: str, plan_json: str, skill_md: str):
         last_code = ""
@@ -219,7 +229,6 @@ class HRAgent:
 
     def _docs_registry_for_plan(self, *, plan_json: str) -> MCPDocsRegistry:
         docs_dir = self.default_docs_dir
-        tools_pythonpath = self.default_tools_root
         try:
             data = json.loads(plan_json)
         except Exception:
@@ -230,23 +239,9 @@ class HRAgent:
             group_docs_dir = group_tools_root / "mcp_docs"
             if group_docs_dir.exists():
                 docs_dir = group_docs_dir
-            if (group_tools_root / "mcp_tools").exists():
-                tools_pythonpath = group_tools_root
-        return MCPDocsRegistry(docs_dir, tools_pythonpath=tools_pythonpath)
+        return MCPDocsRegistry(docs_dir, tools_pythonpath=self.default_tools_root)
 
     def _tools_root_for_plan(self, *, plan_json: str | None) -> Path | None:
-        if not plan_json:
-            return self.default_tools_root
-        try:
-            data = json.loads(plan_json)
-        except Exception:
-            return self.default_tools_root
-        group = data.get("skill_group") if isinstance(data, dict) else None
-        if not isinstance(group, str) or not group.strip():
-            return self.default_tools_root
-        group_tools_root = self.skills_v2_dir / group.strip() / "tools"
-        if (group_tools_root / "mcp_tools").exists():
-            return group_tools_root
         return self.default_tools_root
 
 

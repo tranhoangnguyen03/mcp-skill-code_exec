@@ -65,11 +65,7 @@ def search_employees(query: str) -> list[dict]:
     q = query.strip().lower()
     if not q:
         return []
-    matches = [
-        e
-        for e in _EMPLOYEES
-        if q in e.name.lower() or q in e.dept.lower() or q in e.role.lower()
-    ]
+    matches = [e for e in _EMPLOYEES if q in e.name.lower() or q in e.dept.lower() or q in e.role.lower()]
     return [_to_dict(e) for e in matches]
 
 
@@ -96,11 +92,7 @@ def get_anniversary_employees(days_ahead: int = 0) -> list[dict]:
     if isinstance(days_ahead, dict):
         days_ahead = int(days_ahead.get("days_ahead") or 0)
     target = date.today() + timedelta(days=days_ahead)
-    matches = [
-        e
-        for e in _EMPLOYEES
-        if (e.hire_date.month, e.hire_date.day) == (target.month, target.day)
-    ]
+    matches = [e for e in _EMPLOYEES if (e.hire_date.month, e.hire_date.day) == (target.month, target.day)]
     return [_to_dict(e) for e in matches]
 
 
@@ -126,14 +118,7 @@ def update_employee(employee_id: int, updates: dict | None = None) -> dict:
         if e.id != employee_id:
             continue
 
-        allowed = {
-            "dept",
-            "role",
-            "status",
-            "manager",
-            "slack_id",
-            "manager_slack_id",
-        }
+        allowed = {"dept", "role", "status", "manager", "slack_id", "manager_slack_id"}
         filtered = {k: v for k, v in updates.items() if k in allowed}
         updated = replace(e, **filtered)
         _EMPLOYEES[idx] = updated

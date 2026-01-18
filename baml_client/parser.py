@@ -24,6 +24,12 @@ class LlmResponseParser:
     def __init__(self, options: DoNotUseDirectlyCallManager):
         self.__options = options
 
+    def WorkflowChat(
+        self, llm_response: str, baml_options: BamlCallOptions = {},
+    ) -> str:
+        __result__ = self.__options.merge_options(baml_options).parse_response(function_name="WorkflowChat", llm_response=llm_response, mode="request")
+        return typing.cast(str, __result__)
+
     def WorkflowCodegen(
         self, llm_response: str, baml_options: BamlCallOptions = {},
     ) -> str:
@@ -36,6 +42,18 @@ class LlmResponseParser:
         __result__ = self.__options.merge_options(baml_options).parse_response(function_name="WorkflowPlan", llm_response=llm_response, mode="request")
         return typing.cast(types.Plan, __result__)
 
+    def WorkflowPlanReview(
+        self, llm_response: str, baml_options: BamlCallOptions = {},
+    ) -> types.Plan:
+        __result__ = self.__options.merge_options(baml_options).parse_response(function_name="WorkflowPlanReview", llm_response=llm_response, mode="request")
+        return typing.cast(types.Plan, __result__)
+
+    def WorkflowRespond(
+        self, llm_response: str, baml_options: BamlCallOptions = {},
+    ) -> str:
+        __result__ = self.__options.merge_options(baml_options).parse_response(function_name="WorkflowRespond", llm_response=llm_response, mode="request")
+        return typing.cast(str, __result__)
+
     
 
 class LlmStreamParser:
@@ -43,6 +61,12 @@ class LlmStreamParser:
 
     def __init__(self, options: DoNotUseDirectlyCallManager):
         self.__options = options
+
+    def WorkflowChat(
+        self, llm_response: str, baml_options: BamlCallOptions = {},
+    ) -> str:
+        __result__ = self.__options.merge_options(baml_options).parse_response(function_name="WorkflowChat", llm_response=llm_response, mode="stream")
+        return typing.cast(str, __result__)
 
     def WorkflowCodegen(
         self, llm_response: str, baml_options: BamlCallOptions = {},
@@ -55,5 +79,17 @@ class LlmStreamParser:
     ) -> stream_types.Plan:
         __result__ = self.__options.merge_options(baml_options).parse_response(function_name="WorkflowPlan", llm_response=llm_response, mode="stream")
         return typing.cast(stream_types.Plan, __result__)
+
+    def WorkflowPlanReview(
+        self, llm_response: str, baml_options: BamlCallOptions = {},
+    ) -> stream_types.Plan:
+        __result__ = self.__options.merge_options(baml_options).parse_response(function_name="WorkflowPlanReview", llm_response=llm_response, mode="stream")
+        return typing.cast(stream_types.Plan, __result__)
+
+    def WorkflowRespond(
+        self, llm_response: str, baml_options: BamlCallOptions = {},
+    ) -> str:
+        __result__ = self.__options.merge_options(baml_options).parse_response(function_name="WorkflowRespond", llm_response=llm_response, mode="stream")
+        return typing.cast(str, __result__)
 
     

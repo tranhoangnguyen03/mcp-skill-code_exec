@@ -1,36 +1,26 @@
 import json
-from pathlib import Path
+from agent_workspace.workflow_agent import agent as agent_module
 
-from agent_workspace.workflow_agent.agent import HRAgent
-
-
-class PlannerLLM:
-    def __init__(self):
-        pass
-
-    def chat(self, messages, temperature=0.2):
-        content = messages[-1].content
-        if "Return ONLY valid JSON" in content:
-            return json.dumps(
-                {
-                    "action": "execute_skill",
-                    "skill_group": "HR-scopes",
-                    "skill_name": "Onboard New Hires",
-                    "intent": "Onboard new hires",
-                    "steps": ["placeholder step"],
-                }
-            )
-        if "Return ONLY a single Python code block." in content:
-            return """```python
-print("noop")
-```"""
-        if "Write a concise response to the user" in content:
-            return "Done."
-        raise AssertionError("Unexpected prompt")
+from agent_workspace.workflow_agent.agent import WorkflowAgent
 
 
-def test_plan_v2_contains_skill_group_and_logic_flow_steps():
-    agent = HRAgent(llm=PlannerLLM())
+def test_plan_v2_contains_skill_group_and_logic_flow_steps(monkeypatch):
+    def fake_workflow_plan(*, user_message: str, skills_readme: str, skill_names: list[str]) -> dict:
+        return {
+            "action": "execute_skill",
+            "skill_group": "HR-scopes",
+            "skill_name": "Onboard New Hires",
+            "intent": "Onboard new hires",
+            "steps": ["placeholder step"],
+        }
+
+    def fake_workflow_plan_review(*, user_message: str, proposed_plan_json: str, selected_skill_md: str) -> dict:
+        return json.loads(proposed_plan_json)
+
+    monkeypatch.setattr(agent_module, "workflow_plan", fake_workflow_plan)
+    monkeypatch.setattr(agent_module, "workflow_plan_review", fake_workflow_plan_review)
+
+    agent = WorkflowAgent()
     plan, plan_json, selected_skill = agent.plan(user_message="Onboard new hires")
     assert plan.skill_group == "HR-scopes"
     assert plan.skill_name == "Onboard New Hires"

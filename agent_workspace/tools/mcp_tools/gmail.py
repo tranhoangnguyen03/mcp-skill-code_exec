@@ -10,7 +10,9 @@ class AutoResponder:
     message: str
     enabled: bool = True
 
+
 _SETTINGS = {}
+
 
 def set_auto_responder(email: str, start_date: str, end_date: str, message: str) -> dict:
     """Sets an out-of-office auto-responder."""
@@ -25,20 +27,22 @@ def set_auto_responder(email: str, start_date: str, end_date: str, message: str)
         email=email,
         start_date=start_date,
         end_date=end_date,
-        message=message
+        message=message,
     )
     _SETTINGS[email] = responder
     return _to_dict(responder)
+
 
 def get_auto_responder(email: str) -> dict | None:
     """Gets the current auto-responder settings for a user."""
     if isinstance(email, dict):
         email = email.get("email")
-        
+
     responder = _SETTINGS.get(email)
     if not responder:
         return None
     return _to_dict(responder)
+
 
 def _to_dict(r: AutoResponder) -> dict:
     return {
@@ -46,5 +50,5 @@ def _to_dict(r: AutoResponder) -> dict:
         "start_date": r.start_date,
         "end_date": r.end_date,
         "message": r.message,
-        "enabled": r.enabled
+        "enabled": r.enabled,
     }

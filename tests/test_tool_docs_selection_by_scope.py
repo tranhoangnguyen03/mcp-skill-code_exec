@@ -1,39 +1,55 @@
 import json
 
-from agent_workspace.workflow_agent.agent import HRAgent
+from agent_workspace.workflow_agent import agent as agent_module
+from agent_workspace.workflow_agent.agent import WorkflowAgent
 
 
-class ScopeDocsAssertingLLM:
-    def __init__(self):
-        self.saw_codegen_prompt = False
+def test_agent_uses_scope_specific_tool_docs_for_codegen(monkeypatch):
+    def fake_workflow_plan(*, user_message: str, skills_readme: str, skill_names: list[str]) -> dict:
+        return {
+            "action": "execute_skill",
+            "skill_group": "Recruitment-scopes",
+            "skill_name": "Schedule Candidate Interviews",
+            "intent": "Schedule candidate interviews",
+            "steps": ["placeholder"],
+        }
 
-    def chat(self, messages, temperature=0.2):
-        content = messages[-1].content
-        if "Return ONLY valid JSON" in content:
-            return json.dumps(
-                {
-                    "action": "execute_skill",
-                    "skill_group": "Recruitment-scopes",
-                    "skill_name": "Schedule Candidate Interviews",
-                    "intent": "Schedule candidate interviews",
-                    "steps": ["placeholder"],
-                }
-            )
-        if "Return ONLY a single Python code block." in content:
-            self.saw_codegen_prompt = True
-            assert "Ticketing for recruiting coordination and follow-ups." in content
-            assert "# bamboo_hr" not in content
-            return """```python
+    def fake_workflow_codegen(
+        *,
+        user_message: str,
+        plan_json: str,
+        skill_md: str,
+        tool_contracts: str,
+        attempt: int,
+        previous_error: str,
+        previous_code: str,
+    ) -> str:
+        assert "Ticketing for recruiting coordination and follow-ups." in tool_contracts
+        assert "# bamboo_hr" not in tool_contracts
+        return """```python
 print("noop")
 ```"""
-        if "Write a concise response to the user" in content:
-            assert self.saw_codegen_prompt is True
-            return "Done."
-        raise AssertionError("Unexpected prompt")
 
+    def fake_workflow_respond(
+        *,
+        user_message: str,
+        plan_json: str,
+        executed_code: str,
+        exec_stdout: str,
+        exec_stderr: str,
+        exit_code: int,
+        attempts: int,
+    ) -> str:
+        return "Done."
 
-def test_agent_uses_scope_specific_tool_docs_for_codegen():
-    agent = HRAgent(llm=ScopeDocsAssertingLLM())
+    def fake_workflow_plan_review(*, user_message: str, proposed_plan_json: str, selected_skill_md: str) -> dict:
+        return json.loads(proposed_plan_json)
+
+    monkeypatch.setattr(agent_module, "workflow_plan", fake_workflow_plan)
+    monkeypatch.setattr(agent_module, "workflow_plan_review", fake_workflow_plan_review)
+    monkeypatch.setattr(agent_module, "workflow_codegen", fake_workflow_codegen)
+    monkeypatch.setattr(agent_module, "workflow_respond", fake_workflow_respond)
+
+    agent = WorkflowAgent()
     result = __import__("asyncio").run(agent.run(user_message="Schedule candidate interviews"))
     assert "Done." in (result.final_response or "")
-

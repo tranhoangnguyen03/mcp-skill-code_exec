@@ -32,8 +32,8 @@ Use this skill when the request involves:
 The agent can write custom Python scripts and call individual tools from a local `mcp_tools` package to perform custom HR tasks. Tool contracts are documented under `tools/mcp_docs`.
 
 ```
-- [lattice.py](file:///Users/nguyen.tran/Documents/My%20Remote%20Vault/mcp-skill-code_exec/agent_workspace/skills_v2/HR-scopes/tools/mcp_tools/lattice.py)
-- [candidate_tracker.py](file:///Users/nguyen.tran/Documents/My%20Remote%20Vault/mcp-skill-code_exec/agent_workspace/skills_v2/HR-scopes/tools/mcp_tools/candidate_tracker.py)
+- [lattice.py](file:///Users/nguyen.tran/Documents/My%20Remote%20Vault/mcp-skill-code_exec/agent_workspace/tools/mcp_tools/lattice.py)
+- [candidate_tracker.py](file:///Users/nguyen.tran/Documents/My%20Remote%20Vault/mcp-skill-code_exec/agent_workspace/tools/mcp_tools/candidate_tracker.py)
 
 ```
 

@@ -1,33 +1,56 @@
 import json
 
-from agent_workspace.workflow_agent.agent import HRAgent
+from agent_workspace.workflow_agent import agent as agent_module
+from agent_workspace.workflow_agent.agent import WorkflowAgent
 
 
-class ExampleLLM:
-    def __init__(self, *, skill_name: str, code: str):
-        self.skill_name = skill_name
-        self.code = code
+def _run_skill(*, monkeypatch, skill_name: str, user_message: str, code: str):
+    def fake_workflow_plan(*, user_message: str, skills_readme: str, skill_names: list[str]) -> dict:
+        return {
+            "action": "execute_skill",
+            "skill_group": "HR-scopes",
+            "skill_name": skill_name,
+            "intent": f"Run {skill_name}",
+            "steps": ["run workflow"],
+        }
 
-    def chat(self, messages, temperature=0.2):
-        content = messages[-1].content
-        if "Return ONLY valid JSON" in content:
-            return json.dumps(
-                {
-                    "action": "execute_skill",
-                    "skill_group": "HR-scopes",
-                    "skill_name": self.skill_name,
-                    "intent": f"Run {self.skill_name}",
-                    "steps": ["run workflow"],
-                }
-            )
-        if "Return ONLY a single Python code block." in content:
-            return "```python\n" + self.code.strip() + "\n```"
-        if "Write a concise response to the user" in content:
-            return f"Ran {self.skill_name}."
-        raise AssertionError("Unexpected prompt")
+    def fake_workflow_codegen(
+        *,
+        user_message: str,
+        plan_json: str,
+        skill_md: str,
+        tool_contracts: str,
+        attempt: int,
+        previous_error: str,
+        previous_code: str,
+    ) -> str:
+        return "```python\n" + code.strip() + "\n```"
+
+    def fake_workflow_respond(
+        *,
+        user_message: str,
+        plan_json: str,
+        executed_code: str,
+        exec_stdout: str,
+        exec_stderr: str,
+        exit_code: int,
+        attempts: int,
+    ) -> str:
+        return f"Ran {skill_name}."
+
+    def fake_workflow_plan_review(*, user_message: str, proposed_plan_json: str, selected_skill_md: str) -> dict:
+        return json.loads(proposed_plan_json)
+
+    monkeypatch.setattr(agent_module, "workflow_plan", fake_workflow_plan)
+    monkeypatch.setattr(agent_module, "workflow_plan_review", fake_workflow_plan_review)
+    monkeypatch.setattr(agent_module, "workflow_codegen", fake_workflow_codegen)
+    monkeypatch.setattr(agent_module, "workflow_respond", fake_workflow_respond)
+
+    agent = WorkflowAgent()
+    return __import__("asyncio").run(agent.run(user_message=user_message))
 
 
-def test_hr_scopes_daily_new_hires_digest_executes():
+def test_hr_scopes_daily_new_hires_digest_executes(monkeypatch):
     code = """
 import mcp_tools.bamboo_hr as bamboo
 import mcp_tools.slack as slack
@@ -40,13 +63,17 @@ digest = "New hires today:\\n" + "\\n".join(lines) if lines else "No new hires t
 slack.post_message(channel="#hr", message=digest)
 print("count", len(hires))
 """
-    agent = HRAgent(llm=ExampleLLM(skill_name="Daily New Hires Digest", code=code))
-    result = __import__("asyncio").run(agent.run(user_message="Run daily new hires digest"))
+    result = _run_skill(
+        monkeypatch=monkeypatch,
+        skill_name="Daily New Hires Digest",
+        user_message="Run daily new hires digest",
+        code=code,
+    )
     assert result.exec_stdout is not None
     assert "count 3" in result.exec_stdout
 
 
-def test_hr_scopes_onboard_new_hires_executes():
+def test_hr_scopes_onboard_new_hires_executes(monkeypatch):
     code = """
 import mcp_tools.bamboo_hr as bamboo
 import mcp_tools.jira as jira
@@ -62,14 +89,18 @@ for e in hires:
 print("processed", len(hires))
 print("tickets", len(ticket_ids))
 """
-    agent = HRAgent(llm=ExampleLLM(skill_name="Onboard New Hires", code=code))
-    result = __import__("asyncio").run(agent.run(user_message="Onboard today's hires"))
+    result = _run_skill(
+        monkeypatch=monkeypatch,
+        skill_name="Onboard New Hires",
+        user_message="Onboard today's hires",
+        code=code,
+    )
     assert result.exec_stdout is not None
     assert "processed 3" in result.exec_stdout
     assert "tickets 3" in result.exec_stdout
 
 
-def test_hr_scopes_probation_checkin_reminders_executes():
+def test_hr_scopes_probation_checkin_reminders_executes(monkeypatch):
     code = """
 import mcp_tools.bamboo_hr as bamboo
 import mcp_tools.jira as jira
@@ -84,14 +115,18 @@ for e in employees:
 print("count", len(employees))
 print("tickets", len(ticket_ids))
 """
-    agent = HRAgent(llm=ExampleLLM(skill_name="Probation Check-in Reminders", code=code))
-    result = __import__("asyncio").run(agent.run(user_message="Send probation reminders"))
+    result = _run_skill(
+        monkeypatch=monkeypatch,
+        skill_name="Probation Check-in Reminders",
+        user_message="Send probation reminders",
+        code=code,
+    )
     assert result.exec_stdout is not None
     assert "count 1" in result.exec_stdout
     assert "tickets 1" in result.exec_stdout
 
 
-def test_hr_scopes_offboard_employee_executes():
+def test_hr_scopes_offboard_employee_executes(monkeypatch):
     code = """
 import mcp_tools.bamboo_hr as bamboo
 import mcp_tools.jira as jira
@@ -105,13 +140,17 @@ tid = jira.create_ticket(project="IT", summary=f"Offboarding: {updated['name']} 
 slack.send_dm(user_id=updated["manager_slack_id"], message=f"Offboarding started for {updated['name']}. Ticket: {tid}")
 print("status", updated["status"])
 """
-    agent = HRAgent(llm=ExampleLLM(skill_name="Offboard Employee", code=code))
-    result = __import__("asyncio").run(agent.run(user_message="Offboard Maya"))
+    result = _run_skill(
+        monkeypatch=monkeypatch,
+        skill_name="Offboard Employee",
+        user_message="Offboard Maya",
+        code=code,
+    )
     assert result.exec_stdout is not None
     assert "status Offboarding (" in result.exec_stdout
 
 
-def test_hr_scopes_offboarding_queue_review_executes():
+def test_hr_scopes_offboarding_queue_review_executes(monkeypatch):
     code = """
 import mcp_tools.bamboo_hr as bamboo
 import mcp_tools.jira as jira
@@ -127,14 +166,18 @@ for e in offboarding:
 print("offboarding", len(offboarding))
 print("tickets", len(ticket_ids))
 """
-    agent = HRAgent(llm=ExampleLLM(skill_name="Offboarding Queue Review", code=code))
-    result = __import__("asyncio").run(agent.run(user_message="Anyone offboarding we need to process?"))
+    result = _run_skill(
+        monkeypatch=monkeypatch,
+        skill_name="Offboarding Queue Review",
+        user_message="Anyone offboarding we need to process?",
+        code=code,
+    )
     assert result.exec_stdout is not None
     assert "offboarding 1" in result.exec_stdout
     assert "tickets 1" in result.exec_stdout
 
 
-def test_hr_scopes_role_change_access_review_executes():
+def test_hr_scopes_role_change_access_review_executes(monkeypatch):
     code = """
 import mcp_tools.bamboo_hr as bamboo
 import mcp_tools.jira as jira
@@ -148,7 +191,11 @@ tid = jira.create_ticket(project="IT", summary=f"Access review for {updated['nam
 slack.send_dm(user_id=updated["manager_slack_id"], message=f"Role updated for {updated['name']}. Review: {tid}")
 print("role", updated["role"])
 """
-    agent = HRAgent(llm=ExampleLLM(skill_name="Role Change + Access Review", code=code))
-    result = __import__("asyncio").run(agent.run(user_message="Update Ben's role"))
+    result = _run_skill(
+        monkeypatch=monkeypatch,
+        skill_name="Role Change + Access Review",
+        user_message="Update Ben's role",
+        code=code,
+    )
     assert result.exec_stdout is not None
     assert "role Senior DevOps Engineer" in result.exec_stdout

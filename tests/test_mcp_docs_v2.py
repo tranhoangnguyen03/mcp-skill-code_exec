@@ -31,10 +31,10 @@ def _sys_path(path: Path):
 
 def test_mcp_docs_v2_cover_all_tools_and_have_examples():
     repo_root = Path(__file__).resolve().parents[1]
-    v2_tools_root = repo_root / "agent_workspace" / "skills_v2" / "HR-scopes" / "tools"
-    docs_root = v2_tools_root / "mcp_docs"
+    tools_root = repo_root / "agent_workspace" / "tools"
+    docs_root = repo_root / "agent_workspace" / "skills_v2" / "HR-scopes" / "tools" / "mcp_docs"
 
-    with _sys_path(v2_tools_root):
+    with _sys_path(tools_root):
         from mcp_tools import bamboo_hr, jira, slack
 
         module_map = {

@@ -1,28 +1,30 @@
 import json
-from pathlib import Path
 
-from agent_workspace.workflow_agent.agent import HRAgent
+from agent_workspace.workflow_agent import agent as agent_module
+from agent_workspace.workflow_agent.agent import WorkflowAgent
 
 
-class FakeLLM:
-    def __init__(self):
-        self.calls = 0
+def test_agent_v2_end_to_end_fake_baml(monkeypatch):
+    def fake_workflow_plan(*, user_message: str, skills_readme: str, skill_names: list[str]) -> dict:
+        return {
+            "action": "execute_skill",
+            "skill_group": "HR-scopes",
+            "skill_name": "Onboard New Hires",
+            "intent": "Run onboarding digest",
+            "steps": ["fetch hires", "notify managers", "summarize"],
+        }
 
-    def chat(self, messages, temperature=0.2):
-        self.calls += 1
-        content = messages[-1].content
-        if "Return ONLY valid JSON" in content:
-            return json.dumps(
-                {
-                    "action": "execute_skill",
-                    "skill_group": "HR-scopes",
-                    "skill_name": "Onboard New Hires",
-                    "intent": "Run onboarding digest",
-                    "steps": ["fetch hires", "notify managers", "summarize"],
-                }
-            )
-        if "Return ONLY a single Python code block." in content:
-            return """```python
+    def fake_workflow_codegen(
+        *,
+        user_message: str,
+        plan_json: str,
+        skill_md: str,
+        tool_contracts: str,
+        attempt: int,
+        previous_error: str,
+        previous_code: str,
+    ) -> str:
+        return """```python
 import mcp_tools
 import mcp_tools.bamboo_hr as bamboo
 
@@ -30,62 +32,66 @@ hires = bamboo.get_todays_hires()
 print("mcp_tools_file:", mcp_tools.__file__)
 print("hires:", len(hires))
 ```"""
-        if "Write a concise response to the user" in content:
-            return "Completed v2 workflow."
-        raise AssertionError("Unexpected prompt")
 
+    def fake_workflow_respond(
+        *,
+        user_message: str,
+        plan_json: str,
+        executed_code: str,
+        exec_stdout: str,
+        exec_stderr: str,
+        exit_code: int,
+        attempts: int,
+    ) -> str:
+        return "Completed v2 workflow."
 
-def test_agent_v2_end_to_end_fake_llm():
-    agent = HRAgent(llm=FakeLLM())
+    def fake_workflow_plan_review(*, user_message: str, proposed_plan_json: str, selected_skill_md: str) -> dict:
+        return json.loads(proposed_plan_json)
+
+    monkeypatch.setattr(agent_module, "workflow_plan", fake_workflow_plan)
+    monkeypatch.setattr(agent_module, "workflow_plan_review", fake_workflow_plan_review)
+    monkeypatch.setattr(agent_module, "workflow_codegen", fake_workflow_codegen)
+    monkeypatch.setattr(agent_module, "workflow_respond", fake_workflow_respond)
+
+    agent = WorkflowAgent()
     result = __import__("asyncio").run(agent.run(user_message="Run onboarding"))
-    assert "Completed v2 workflow" in result.final_response
+    assert "Completed v2 workflow" in (result.final_response or "")
     assert result.exec_stdout is not None
     assert "hires: 3" in result.exec_stdout
-    assert "skills_v2/HR-scopes/tools/mcp_tools" in result.exec_stdout.replace("\\", "/")
+    assert "agent_workspace/tools/mcp_tools" in result.exec_stdout.replace("\\", "/")
     assert result.attempts == 1
 
 
-class ChatLLM:
-    def chat(self, messages, temperature=0.2):
-        content = messages[-1].content
-        if "Return ONLY valid JSON" in content:
-            return json.dumps({"action": "chat", "skill_name": None, "intent": "greeting", "steps": []})
-        if "does not require running any workflows" in content:
-            return "Hello from v2."
-        raise AssertionError("Unexpected prompt")
+def test_agent_v2_chat_does_not_execute(monkeypatch):
+    def fake_workflow_plan(*, user_message: str, skills_readme: str, skill_names: list[str]) -> dict:
+        return {"action": "chat", "skill_group": None, "skill_name": None, "intent": "greeting", "steps": []}
 
+    def fake_workflow_chat(*, user_message: str, skills_readme: str, custom_skill_md: str) -> str:
+        return "Hello from v2."
 
-def test_agent_v2_chat_does_not_execute():
-    agent = HRAgent(llm=ChatLLM())
+    monkeypatch.setattr(agent_module, "workflow_plan", fake_workflow_plan)
+    monkeypatch.setattr(agent_module, "workflow_chat", fake_workflow_chat)
+
+    agent = WorkflowAgent()
     result = __import__("asyncio").run(agent.run(user_message="hello"))
-    assert "Hello from v2." in result.final_response
+    assert "Hello from v2." in (result.final_response or "")
     assert result.generated_code is None
     assert result.exec_stdout is None
     assert result.attempts is None
 
 
-class UnknownSkillLLM:
-    def chat(self, messages, temperature=0.2):
-        content = messages[-1].content
-        if "Return ONLY valid JSON" in content:
-            return json.dumps(
-                {
-                    "action": "execute_skill",
-                    "skill_name": "HR-notify-employee",
-                    "intent": "Notify someone",
-                    "steps": ["send dm"],
-                }
-            )
-        if "Return ONLY a single Python code block." in content:
-            return """```python
-print("ok")
-```"""
-        if "Write a concise response to the user" in content:
-            return "Done."
-        raise AssertionError("Unexpected prompt")
+def test_agent_v2_unknown_skill_name_does_not_crash(monkeypatch):
+    def fake_workflow_plan(*, user_message: str, skills_readme: str, skill_names: list[str]) -> dict:
+        return {
+            "action": "execute_skill",
+            "skill_group": "HR-scopes",
+            "skill_name": "HR-notify-employee",
+            "intent": "Notify someone",
+            "steps": ["send dm"],
+        }
 
+    monkeypatch.setattr(agent_module, "workflow_plan", fake_workflow_plan)
 
-def test_agent_v2_unknown_skill_name_does_not_crash():
-    agent = HRAgent(llm=UnknownSkillLLM())
+    agent = WorkflowAgent()
     plan, plan_json, selected_skill = agent.plan(user_message="Notify Alice")
     assert plan.action in {"execute_skill", "custom_script"}

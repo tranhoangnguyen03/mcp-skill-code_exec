@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 import json
-import os
 import re
 
 import pytest
 
-from tests.utils.qualitative_judge import HeuristicJudge, OpenRouterJudge, evaluate_with_judge
+from agent_workspace.workflow_agent import agent as agent_module
+from tests.utils.qualitative_judge import HeuristicJudge, evaluate_with_judge
 from tests.utils.scenario_harness import Scenario, run_scenario
 
 
@@ -252,6 +252,7 @@ print("count", len(candidates))
 SCENARIOS: list[Scenario] = [
     Scenario(
         name="Daily new hires digest",
+        expected_action="execute_skill",
         expected_skill="Daily New Hires Digest",
         expected_skill_group="HR-scopes",
         user_requests=[
@@ -272,6 +273,7 @@ SCENARIOS: list[Scenario] = [
     ),
     Scenario(
         name="Onboard new hires",
+        expected_action="execute_skill",
         expected_skill="Onboard New Hires",
         expected_skill_group="HR-scopes",
         user_requests=[
@@ -294,6 +296,7 @@ SCENARIOS: list[Scenario] = [
     ),
     Scenario(
         name="Probation check-in reminders",
+        expected_action="execute_skill",
         expected_skill="Probation Check-in Reminders",
         expected_skill_group="HR-scopes",
         user_requests=[
@@ -313,6 +316,7 @@ SCENARIOS: list[Scenario] = [
     ),
     Scenario(
         name="Offboard employee",
+        expected_action="execute_skill",
         expected_skill="Offboard Employee",
         expected_skill_group="HR-scopes",
         user_requests=[
@@ -333,6 +337,7 @@ SCENARIOS: list[Scenario] = [
     ),
     Scenario(
         name="Offboarding queue review",
+        expected_action="execute_skill",
         expected_skill="Offboarding Queue Review",
         expected_skill_group="HR-scopes",
         user_requests=[
@@ -352,6 +357,7 @@ SCENARIOS: list[Scenario] = [
     ),
     Scenario(
         name="Role change access review",
+        expected_action="execute_skill",
         expected_skill="Role Change + Access Review",
         expected_skill_group="HR-scopes",
         user_requests=[
@@ -371,6 +377,7 @@ SCENARIOS: list[Scenario] = [
     ),
     Scenario(
         name="Leave and absence logistics",
+        expected_action="execute_skill",
         expected_skill="Leave & Absence Management",
         expected_skill_group="HR-scopes",
         user_requests=[
@@ -393,6 +400,7 @@ SCENARIOS: list[Scenario] = [
     ),
     Scenario(
         name="Performance review cycle kickoff",
+        expected_action="execute_skill",
         expected_skill="Performance Review Cycle",
         expected_skill_group="HR-scopes",
         user_requests=[
@@ -413,6 +421,7 @@ SCENARIOS: list[Scenario] = [
     ),
     Scenario(
         name="Schedule candidate interviews",
+        expected_action="execute_skill",
         expected_skill="Schedule Candidate Interviews",
         expected_skill_group="Recruitment-scopes",
         user_requests=[
@@ -436,6 +445,7 @@ SCENARIOS: list[Scenario] = [
     ),
     Scenario(
         name="Create purchase request",
+        expected_action="execute_skill",
         expected_skill="Create Purchase Request",
         expected_skill_group="Procurement-scopes",
         user_requests=[
@@ -456,6 +466,7 @@ SCENARIOS: list[Scenario] = [
     ),
     Scenario(
         name="Candidate Pipeline Review",
+        expected_action="execute_skill",
         expected_skill="Candidate Pipeline Review",
         expected_skill_group="Recruitment-scopes",
         user_requests=[
@@ -473,14 +484,35 @@ SCENARIOS: list[Scenario] = [
         ],
         required_response_keywords=["completed", "candidate pipeline review"],
     ),
+    Scenario(
+        name="Profile update reminder for new hires",
+        expected_action="custom_script",
+        expected_skill=None,
+        expected_skill_group=None,
+        user_requests=[
+            "ask the new hires to visit the internal site internal.example.com/profile/<employee_id> to update their employee profile",
+        ],
+        required_code_patterns=[
+            r"import mcp_tools\.bamboo_hr",
+            r"import mcp_tools\.slack",
+            r"get_todays_hires\(",
+            r"internal\.example\.com/profile/",
+            r"slack\.send_dm\(",
+        ],
+        required_log_patterns=[
+            r"\[Slack\] Sent DM to",
+            r"count 3",
+        ],
+        required_response_keywords=["completed", "profile"],
+    ),
 ]
 
 
-def _build_request_to_skill() -> dict[str, str]:
-    mapping: dict[str, str] = {}
-    for scenario in SCENARIOS:
-        for r in scenario.user_requests:
-            mapping[r] = scenario.expected_skill
+def _build_request_to_scenario() -> dict[str, Scenario]:
+    mapping: dict[str, Scenario] = {}
+    for s in SCENARIOS:
+        for r in s.user_requests:
+            mapping[r] = s
     return mapping
 
 
@@ -492,29 +524,92 @@ def _build_request_to_skill() -> dict[str, str]:
         for r in scenario.user_requests
     ],
 )
-def test_hr_scopes_scenarios_pass_heuristic_qualitative_evaluation(scenario: Scenario, user_request: str):
-    llm = DeterministicScenarioAgentLLM(request_to_skill=_build_request_to_skill(), code_by_skill=CODE_BY_SKILL)
-    run = run_scenario(llm=llm, scenario=scenario, user_request=user_request)
+def test_hr_scopes_scenarios_pass_heuristic_qualitative_evaluation(monkeypatch, scenario: Scenario, user_request: str):
+    request_to_scenario = _build_request_to_scenario()
 
-    assert run.plan.get("action") == "execute_skill"
-    assert run.plan.get("skill_group") == scenario.expected_skill_group
+    def fake_workflow_plan(*, user_message: str, skills_readme: str, skill_names: list[str]) -> dict:
+        s = request_to_scenario[user_message]
+        if s.expected_action == "custom_script":
+            return {
+                "action": "custom_script",
+                "skill_group": None,
+                "skill_name": "Profile update reminder",
+                "intent": "Prompt new hires to update their employee profile",
+                "steps": [
+                    "Fetch today's new hires via BambooHR.",
+                    "For each hire, compose the internal profile URL and send a Slack DM.",
+                    "Print a final summary including the number of hires messaged.",
+                ],
+            }
+
+        skill_name = s.expected_skill
+        group = s.expected_skill_group
+        return {
+            "action": "execute_skill",
+            "skill_group": group,
+            "skill_name": skill_name,
+            "intent": f"Resolve request using {skill_name}",
+            "steps": ["follow skill logic flow"],
+        }
+
+    def fake_workflow_codegen(
+        *,
+        user_message: str,
+        plan_json: str,
+        skill_md: str,
+        tool_contracts: str,
+        attempt: int,
+        previous_error: str,
+        previous_code: str,
+    ) -> str:
+        plan = json.loads(plan_json)
+        action = plan.get("action")
+        if action == "custom_script":
+            code = """
+import mcp_tools.bamboo_hr as bamboo
+import mcp_tools.slack as slack
+
+hires = bamboo.get_todays_hires()
+for e in hires:
+    url = f"internal.example.com/profile/{e['id']}"
+    slack.send_dm(user_id=e["slack_id"], message=f\"Please update your employee profile: {url}\")
+print("count", len(hires))
+"""
+            return "```python\n" + code.strip() + "\n```"
+
+        skill_name = plan.get("skill_name")
+        code = CODE_BY_SKILL[skill_name]
+        return "```python\n" + code.strip() + "\n```"
+
+    def fake_workflow_respond(
+        *,
+        user_message: str,
+        plan_json: str,
+        executed_code: str,
+        exec_stdout: str,
+        exec_stderr: str,
+        exit_code: int,
+        attempts: int,
+    ) -> str:
+        plan = json.loads(plan_json)
+        if plan.get("action") == "custom_script":
+            return "Completed: Profile update reminder."
+        skill_name = plan.get("skill_name")
+        return f"Completed: {skill_name}."
+
+    def fake_workflow_plan_review(*, user_message: str, proposed_plan_json: str, selected_skill_md: str) -> dict:
+        return json.loads(proposed_plan_json)
+
+    monkeypatch.setattr(agent_module, "workflow_plan", fake_workflow_plan)
+    monkeypatch.setattr(agent_module, "workflow_plan_review", fake_workflow_plan_review)
+    monkeypatch.setattr(agent_module, "workflow_codegen", fake_workflow_codegen)
+    monkeypatch.setattr(agent_module, "workflow_respond", fake_workflow_respond)
+
+    run = run_scenario(scenario=scenario, user_request=user_request)
+
+    assert run.plan.get("action") == scenario.expected_action
+    if scenario.expected_action == "execute_skill":
+        assert run.plan.get("skill_group") == scenario.expected_skill_group
 
     verdict = evaluate_with_judge(judge=HeuristicJudge(), scenario=scenario, run=run)
-    assert verdict.passed, "; ".join(verdict.notes)
-
-
-@pytest.mark.integration
-@pytest.mark.parametrize(
-    "scenario,user_request",
-    [(scenario, r) for scenario in SCENARIOS for r in scenario.user_requests],
-)
-def test_hr_scopes_scenarios_pass_openrouter_qualitative_evaluation_if_configured(
-    scenario: Scenario, user_request: str
-):
-    if not os.getenv("open_router_api_key") or not os.getenv("open_router_model_name"):
-        pytest.skip("OpenRouter judge not configured")
-
-    llm = DeterministicScenarioAgentLLM(request_to_skill=_build_request_to_skill(), code_by_skill=CODE_BY_SKILL)
-    run = run_scenario(llm=llm, scenario=scenario, user_request=user_request)
-    verdict = evaluate_with_judge(judge=OpenRouterJudge(), scenario=scenario, run=run)
     assert verdict.passed, "; ".join(verdict.notes)

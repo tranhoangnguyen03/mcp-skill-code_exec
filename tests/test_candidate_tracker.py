@@ -16,9 +16,9 @@ def _sys_path(path: Path):
 
 def test_candidate_tracker_loads_fixtures():
     repo_root = Path(__file__).resolve().parents[1]
-    v2_tools_root = repo_root / "agent_workspace" / "skills_v2" / "HR-scopes" / "tools"
+    tools_root = repo_root / "agent_workspace" / "tools"
     
-    with _sys_path(v2_tools_root):
+    with _sys_path(tools_root):
         from mcp_tools import candidate_tracker
         
         # Reset internal state for clean test
@@ -37,9 +37,9 @@ def test_candidate_tracker_loads_fixtures():
 
 def test_candidate_tracker_filters():
     repo_root = Path(__file__).resolve().parents[1]
-    v2_tools_root = repo_root / "agent_workspace" / "skills_v2" / "HR-scopes" / "tools"
+    tools_root = repo_root / "agent_workspace" / "tools"
     
-    with _sys_path(v2_tools_root):
+    with _sys_path(tools_root):
         from mcp_tools import candidate_tracker
         
         # Filter by stage
@@ -54,9 +54,9 @@ def test_candidate_tracker_filters():
 
 def test_candidate_tracker_search():
     repo_root = Path(__file__).resolve().parents[1]
-    v2_tools_root = repo_root / "agent_workspace" / "skills_v2" / "HR-scopes" / "tools"
+    tools_root = repo_root / "agent_workspace" / "tools"
     
-    with _sys_path(v2_tools_root):
+    with _sys_path(tools_root):
         from mcp_tools import candidate_tracker
         
         # Search by skill
@@ -69,9 +69,9 @@ def test_candidate_tracker_search():
 
 def test_candidate_tracker_updates():
     repo_root = Path(__file__).resolve().parents[1]
-    v2_tools_root = repo_root / "agent_workspace" / "skills_v2" / "HR-scopes" / "tools"
+    tools_root = repo_root / "agent_workspace" / "tools"
     
-    with _sys_path(v2_tools_root):
+    with _sys_path(tools_root):
         from mcp_tools import candidate_tracker
         
         email = "sarah.j@example.com"

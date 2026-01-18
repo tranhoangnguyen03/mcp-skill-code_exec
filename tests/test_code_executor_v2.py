@@ -6,9 +6,9 @@ from agent_workspace.workflow_agent.code_executor import PythonCodeExecutor
 def test_code_executor_v2_imports_tools_from_v2_path():
     repo_root = Path(__file__).resolve().parents[1]
     workspace_dir = repo_root / "agent_workspace"
-    v2_tools_root = workspace_dir / "skills_v2" / "HR-scopes" / "tools"
+    tools_root = workspace_dir / "tools"
 
-    executor = PythonCodeExecutor(workspace_dir, extra_pythonpaths=[v2_tools_root])
+    executor = PythonCodeExecutor(workspace_dir, extra_pythonpaths=[tools_root])
     result = executor.run(
         """
 import mcp_tools
@@ -21,5 +21,5 @@ print(len(hires))
     )
     assert result.exit_code == 0
     normalized = result.stdout.replace("\\", "/")
-    assert "skills_v2/HR-scopes/tools/mcp_tools" in normalized
+    assert "agent_workspace/tools/mcp_tools" in normalized
     assert "\n3\n" in result.stdout or result.stdout.strip().endswith("3")

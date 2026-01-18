@@ -5,7 +5,7 @@ Skill-driven HR automation agent that:
 - otherwise generates a custom Python script using the available MCP tools
 - executes the script and summarizes outputs
 
-This repo includes mock integrations for BambooHR, Jira, and Slack under `agent_workspace/skills_v2/HR-scopes/tools/mcp_tools/`.
+This repo includes mock integrations for BambooHR, Jira, Slack, etc. under `agent_workspace/tools/mcp_tools/`.
 
 ## How it works
 
@@ -21,12 +21,11 @@ This repo includes mock integrations for BambooHR, Jira, and Slack under `agent_
 ```
 agent_workspace/
   workflow_agent/          Agent logic (plan → codegen → execute → respond)
-  prompts/                 Prompts (plan, codegen, respond, custom_skill)
   skills_v2/               Skill group and example manuals
+  tools/                   Shared runtime tool implementations (mcp_tools)
     HR-scopes/
       examples/            Skill manuals (markdown examples)
       tools/
-        mcp_tools/         Mock integrations (bamboo_hr, jira, slack)
         mcp_docs/          MCP-style tool documentation (server.json + examples)
     Recruitment-scopes/
       examples/            Skill manuals (markdown examples)

@@ -6,7 +6,7 @@ from pathlib import Path
 
 
 def repo_root() -> Path:
-    return Path(__file__).resolve().parents[5]
+    return Path(__file__).resolve().parents[3]
 
 
 def data_dir() -> Path:
@@ -21,13 +21,14 @@ def load_json(relative_path: str):
 
 def _expand_date_tokens(text: str) -> str:
     import re
+
     today = date.today()
 
     def replacer(match):
         token = match.group(0)
         if token == "${TODAY}":
             return today.isoformat()
-        
+
         m = re.match(r"\$\{TODAY_(PLUS|MINUS)_(\d+)\}", token)
         if m:
             op, days = m.groups()
@@ -37,4 +38,3 @@ def _expand_date_tokens(text: str) -> str:
         return token
 
     return re.sub(r"\$\{TODAY(?:_(?:PLUS|MINUS)_\d+)?\}", replacer, text)
-

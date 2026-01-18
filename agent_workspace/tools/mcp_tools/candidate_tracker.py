@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import date
+from datetime import date, datetime
+from typing import Iterable
 
 from ._data import load_json
 
@@ -73,15 +74,8 @@ def list_candidates(stage: str | None = None, status: str | None = None) -> list
     return [_to_dict(c) for c in matches]
 
 
-def get_candidate(email_or_id: str) -> dict | None:
-    _init_if_needed()
-    for c in _CANDIDATES:
-        if c.email.lower() == email_or_id.lower() or c.id == email_or_id:
-            return _to_dict(c)
-    return None
-
-
 def search_candidates(query: str) -> list[dict]:
+    """Search candidates by name, email, role, or skills."""
     _init_if_needed()
     q = query.strip().lower()
     if not q:
@@ -97,7 +91,17 @@ def search_candidates(query: str) -> list[dict]:
     return [_to_dict(c) for c in matches]
 
 
+def get_candidate(email_or_id: str) -> dict | None:
+    """Fetch a single candidate by email or ID."""
+    _init_if_needed()
+    for c in _CANDIDATES:
+        if c.email.lower() == email_or_id.lower() or c.id == email_or_id:
+            return _to_dict(c)
+    return None
+
+
 def update_candidate_stage(email: str, new_stage: str) -> dict:
+    """Update the current stage of a candidate."""
     _init_if_needed()
     for idx, c in enumerate(_CANDIDATES):
         if c.email.lower() == email.lower():
@@ -110,17 +114,11 @@ def update_candidate_stage(email: str, new_stage: str) -> dict:
     raise ValueError(f"Candidate not found: {email}")
 
 
-def add_interview_log(
-    email: str,
-    stage: str,
-    interviewer: str,
-    date_str: str | None = None,
-    outcome: str | None = None,
-) -> dict:
+def add_interview_log(email: str, stage: str, interviewer: str, date_str: str | None = None, outcome: str | None = None) -> dict:
+    """Add an interview event to a candidate's history."""
     _init_if_needed()
     if not date_str:
         date_str = date.today().isoformat()
-
     for idx, c in enumerate(_CANDIDATES):
         if c.email.lower() == email.lower():
             from dataclasses import replace
@@ -154,4 +152,3 @@ def _to_dict(c: Candidate) -> dict:
             for h in c.interview_history
         ],
     }
-

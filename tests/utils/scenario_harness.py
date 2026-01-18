@@ -4,15 +4,16 @@ import json
 from dataclasses import dataclass
 from pathlib import Path
 
-from agent_workspace.workflow_agent.agent import HRAgent, _extract_logic_flow_steps
+from agent_workspace.workflow_agent.agent import WorkflowAgent, _extract_logic_flow_steps
 from agent_workspace.workflow_agent.skill_registry import SkillRegistry
 
 
 @dataclass(frozen=True)
 class Scenario:
     name: str
-    expected_skill: str
-    expected_skill_group: str
+    expected_action: str
+    expected_skill: str | None
+    expected_skill_group: str | None
     user_requests: list[str]
     required_code_patterns: list[str]
     required_log_patterns: list[str]
@@ -37,8 +38,8 @@ def list_scope_skills() -> dict[str, str]:
     return {s.name: s.content for s in registry.list_skills()}
 
 
-def run_scenario(*, llm, scenario: Scenario, user_request: str) -> ScenarioRun:
-    agent = HRAgent(llm=llm)
+def run_scenario(*, scenario: Scenario, user_request: str) -> ScenarioRun:
+    agent = WorkflowAgent()
     result = __import__("asyncio").run(agent.run(user_message=user_request))
     if result.plan_json is None:
         raise AssertionError("Expected plan_json to be set")
@@ -55,7 +56,9 @@ def run_scenario(*, llm, scenario: Scenario, user_request: str) -> ScenarioRun:
     )
 
 
-def expected_logic_flow_steps(skill_name: str) -> list[str]:
+def expected_logic_flow_steps(skill_name: str | None) -> list[str]:
+    if not skill_name:
+        return []
     skills = list_scope_skills()
     skill_md = skills.get(skill_name, "")
     return _extract_logic_flow_steps(skill_md)

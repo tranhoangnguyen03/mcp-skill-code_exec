@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from datetime import date, datetime, timedelta
 from typing import Iterable
 
+
 @dataclass(frozen=True)
 class CalendarEvent:
     id: str
@@ -13,7 +14,9 @@ class CalendarEvent:
     end_time: str
     status: str = "confirmed"
 
+
 _EVENTS = []
+
 
 def create_event(
     email: str,
@@ -38,10 +41,11 @@ def create_event(
         email=email,
         title=title,
         start_time=start_time,
-        end_time=end_time
+        end_time=end_time,
     )
     _EVENTS.append(event)
     return _to_dict(event)
+
 
 def get_events(email: str, date_str: str | None = None) -> list[dict]:
     """List events for a user, optionally filtering by date."""
@@ -51,12 +55,12 @@ def get_events(email: str, date_str: str | None = None) -> list[dict]:
         date_str = payload.get("date")
 
     matches = [e for e in _EVENTS if e.email == email]
-    
+
     if date_str:
-        # Simple string match for YYYY-MM-DD in the start_time
         matches = [e for e in matches if e.start_time.startswith(date_str)]
-        
+
     return [_to_dict(e) for e in matches]
+
 
 def _to_dict(e: CalendarEvent) -> dict:
     return {
@@ -65,5 +69,5 @@ def _to_dict(e: CalendarEvent) -> dict:
         "title": e.title,
         "start_time": e.start_time,
         "end_time": e.end_time,
-        "status": e.status
+        "status": e.status,
     }

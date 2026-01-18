@@ -2,7 +2,7 @@ import asyncio
 
 import chainlit as cl
 
-from agent_workspace.workflow_agent.agent import HRAgent
+from agent_workspace.workflow_agent.agent import WorkflowAgent
 from agent_workspace.workflow_agent.types import ExecutionResult
 from agent_workspace.main import build_agent, load_env
 
@@ -16,7 +16,7 @@ async def on_chat_start():
 
 @cl.on_message
 async def on_message(message: cl.Message):
-    agent: HRAgent = cl.user_session.get("agent")
+    agent: WorkflowAgent = cl.user_session.get("agent")
     user_input = message.content
 
     # 1. Planning phase with HITL gate

@@ -23,9 +23,9 @@ def _sys_path(path: Path):
 
 def test_new_mcp_tools_google_calendar_create_and_list_events():
     repo_root = Path(__file__).resolve().parents[1]
-    v2_tools_root = repo_root / "agent_workspace" / "skills_v2" / "HR-scopes" / "tools"
+    tools_root = repo_root / "agent_workspace" / "tools"
 
-    with _sys_path(v2_tools_root):
+    with _sys_path(tools_root):
         from mcp_tools import google_calendar
 
         event = google_calendar.create_event(
@@ -45,9 +45,9 @@ def test_new_mcp_tools_google_calendar_create_and_list_events():
 
 def test_new_mcp_tools_gmail_set_and_get_auto_responder():
     repo_root = Path(__file__).resolve().parents[1]
-    v2_tools_root = repo_root / "agent_workspace" / "skills_v2" / "HR-scopes" / "tools"
+    tools_root = repo_root / "agent_workspace" / "tools"
 
-    with _sys_path(v2_tools_root):
+    with _sys_path(tools_root):
         from mcp_tools import gmail
 
         saved = gmail.set_auto_responder(
@@ -66,9 +66,9 @@ def test_new_mcp_tools_gmail_set_and_get_auto_responder():
 
 def test_new_mcp_tools_lattice_create_cycle_and_eligibility():
     repo_root = Path(__file__).resolve().parents[1]
-    v2_tools_root = repo_root / "agent_workspace" / "skills_v2" / "HR-scopes" / "tools"
+    tools_root = repo_root / "agent_workspace" / "tools"
 
-    with _sys_path(v2_tools_root):
+    with _sys_path(tools_root):
         from mcp_tools import lattice
 
         cycle = lattice.create_cycle(name="Q4 Review", due_date="2024-01-31")

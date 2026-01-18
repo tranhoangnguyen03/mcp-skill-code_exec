@@ -1,14 +1,8 @@
-import os
 from pathlib import Path
 
 from dotenv import load_dotenv
 
-try:
-    from workflow_agent.agent import HRAgent
-    from workflow_agent.openrouter_client import OpenRouterClient
-except ModuleNotFoundError:
-    from agent_workspace.workflow_agent.agent import HRAgent
-    from agent_workspace.workflow_agent.openrouter_client import OpenRouterClient
+from agent_workspace.workflow_agent.agent import WorkflowAgent
 
 
 def load_env():
@@ -18,13 +12,9 @@ def load_env():
         load_dotenv(env_path)
 
 
-def build_agent() -> HRAgent:
+def build_agent() -> WorkflowAgent:
     load_env()
-    llm = OpenRouterClient(
-        api_key=os.getenv("open_router_api_key"),
-        model=os.getenv("open_router_model_name"),
-    )
-    return HRAgent(llm=llm)
+    return WorkflowAgent()
 
 
 def main():
