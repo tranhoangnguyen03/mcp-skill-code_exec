@@ -85,8 +85,36 @@ chainlit run chainlit_app_v2.py
 
 ## Skills and tools
 
-- Skills list: `agent_workspace/skills_v2/Readme.md`
+- Skills list: [skills_v2/Readme.md](file:///Users/nguyen.tran/Documents/My%20Remote%20Vault/mcp-skill-code_exec/agent_workspace/skills_v2/Readme.md)
 - MCP tool docs (schemas): `agent_workspace/skills_v2/HR-scopes/tools/mcp_docs/`
+
+## Supported Scopes & Suggested Queries
+
+### HR-scopes
+- "Onboard today’s new hires."
+- "Onboard today’s new hires in Engineering only."
+- "Offboard Maya Lopez effective today."
+- "Review offboarding queue and create IT tickets."
+- "Role change: update Charlie Davis to Senior DevOps Engineer and start access review."
+- "Send probation check-in reminders for the 90-day window."
+- "Set OOO calendar + auto-reply for alice@company.com next week and notify #engineering."
+- "Kick off a Q4 performance review cycle and notify eligible employees."
+
+### Recruitment-scopes
+- "Schedule candidate interviews for candidate@example.com (Backend Engineer) with interviewer1@company.com and interviewer2@company.com 10–11am; notify #recruiting."
+- "Chase interview feedback for candidate@example.com; remind U_ALICE and U_CHARLIE and post in #recruiting."
+
+### Procurement-scopes
+- "Create a purchase request: requester=Alice Chen, dept=Engineering, item=MacBook Pro, estimated cost=$2500. Notify #procurement."
+- "Vendor onboarding request: vendor=Acme Security, requester_email=alice@company.com, kickoff 3:00–3:30pm, justification=security audit tool; notify #procurement."
+
+### Custom / Tool-level
+- "List all employees and group by department."
+- "Search employees for ‘Engineering Manager’."
+- "Who are today’s hires? Summarize names + managers."
+- "Create two Jira tickets in IT and list open IT tickets."
+- "Set Gmail auto responder for bob@company.com, then fetch it."
+- "Create a calendar event for alice@company.com and then list her events for that date."
 
 ## Tests
 

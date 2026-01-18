@@ -1,0 +1,109 @@
+[
+  {
+    "id": "cand_1",
+    "name": "Sarah Jenkins",
+    "email": "sarah.j@example.com",
+    "role": "Full Stack Engineer",
+    "stage": "Technical",
+    "status": "In-progress",
+    "skills": ["React", "Python", "AWS"],
+    "source": "Referral",
+    "interview_history": [
+      {
+        "stage": "Screening",
+        "date": "${TODAY_MINUS_7}",
+        "interviewer": "Dana Patel",
+        "outcome": "Passed"
+      }
+    ]
+  },
+  {
+    "id": "cand_2",
+    "name": "Michael Vogt",
+    "email": "m.vogt@example.com",
+    "role": "DevOps Engineer",
+    "stage": "Technical",
+    "status": "In-progress",
+    "skills": ["Kubernetes", "Terraform", "Go"],
+    "source": "LinkedIn",
+    "interview_history": [
+      {
+        "stage": "Screening",
+        "date": "${TODAY_MINUS_14}",
+        "interviewer": "Dana Patel",
+        "outcome": "Passed"
+      }
+    ]
+  },
+  {
+    "id": "cand_3",
+    "name": "Elena Rodriguez",
+    "email": "elena.r@example.com",
+    "role": "QA Automation Engineer",
+    "stage": "Offer",
+    "status": "In-progress",
+    "skills": ["Selenium", "Java", "CI/CD"],
+    "source": "Indeed",
+    "interview_history": [
+      {
+        "stage": "Screening",
+        "date": "${TODAY_MINUS_30}",
+        "interviewer": "Dana Patel",
+        "outcome": "Passed"
+      },
+      {
+        "stage": "Technical",
+        "date": "${TODAY_MINUS_21}",
+        "interviewer": "Charlie Davis",
+        "outcome": "Passed"
+      },
+      {
+        "stage": "On-site",
+        "date": "${TODAY_MINUS_7}",
+        "interviewer": "Riley Kim",
+        "outcome": "Strong Hire"
+      }
+    ]
+  },
+  {
+    "id": "cand_4",
+    "name": "David Smith",
+    "email": "d.smith@example.com",
+    "role": "Product Manager",
+    "stage": "Screening",
+    "status": "In-progress",
+    "skills": ["Product Roadmap", "SQL", "Agile"],
+    "source": "Referral",
+    "interview_history": []
+  },
+  {
+    "id": "cand_5",
+    "name": "Linda Wu",
+    "email": "linda.wu@example.com",
+    "role": "Software Engineer",
+    "stage": "On-site",
+    "status": "Rejected",
+    "skills": ["Java", "Spring Boot", "MySQL"],
+    "source": "LinkedIn",
+    "interview_history": [
+      {
+        "stage": "Screening",
+        "date": "${TODAY_MINUS_45}",
+        "interviewer": "Dana Patel",
+        "outcome": "Passed"
+      },
+      {
+        "stage": "Technical",
+        "date": "${TODAY_MINUS_35}",
+        "interviewer": "Charlie Davis",
+        "outcome": "Passed"
+      },
+      {
+        "stage": "On-site",
+        "date": "${TODAY_MINUS_20}",
+        "interviewer": "Jordan Lee",
+        "outcome": "No Hire"
+      }
+    ]
+  }
+]

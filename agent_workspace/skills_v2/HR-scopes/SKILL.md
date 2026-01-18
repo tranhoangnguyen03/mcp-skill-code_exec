@@ -31,5 +31,11 @@ Use this skill when the request involves:
 ## Tools
 The agent can write custom Python scripts and call individual tools from a local `mcp_tools` package to perform custom HR tasks. Tool contracts are documented under `tools/mcp_docs`.
 
+```
+- [lattice.py](file:///Users/nguyen.tran/Documents/My%20Remote%20Vault/mcp-skill-code_exec/agent_workspace/skills_v2/HR-scopes/tools/mcp_tools/lattice.py)
+- [candidate_tracker.py](file:///Users/nguyen.tran/Documents/My%20Remote%20Vault/mcp-skill-code_exec/agent_workspace/skills_v2/HR-scopes/tools/mcp_tools/candidate_tracker.py)
+
+```
+
 ## Keywords
-HR workflows, onboarding, offboarding, role change, access review, probation check-in, new hire digest, leave management, OOO, performance review, BambooHR, Jira, Slack, Google Calendar, Gmail, Lattice
+HR workflows, onboarding, offboarding, role change, access review, probation check-in, new hire digest, leave management, OOO, performance review, BambooHR, Jira, Slack, Google Calendar, Gmail, Lattice, candidate tracker

@@ -17,6 +17,7 @@
 ### Skills
 - Chase Interview Feedback
 - Schedule Candidate Interviews
+- Candidate Pipeline Review
 
 ## Procurement-scopes
 

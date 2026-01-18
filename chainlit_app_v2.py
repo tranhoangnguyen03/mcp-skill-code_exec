@@ -17,17 +17,56 @@ async def on_chat_start():
 @cl.on_message
 async def on_message(message: cl.Message):
     agent: HRAgent = cl.user_session.get("agent")
-    async with cl.Step(name="Plan") as step:
-        plan, plan_json, skill = await asyncio.to_thread(agent.plan, user_message=message.content)
-        step.output = "```json\n" + plan_json.strip() + "\n```"
+    user_input = message.content
 
-    if plan.action == "chat":
-        async with cl.Step(name="Respond") as step:
-            final = await asyncio.to_thread(agent.chat, user_message=message.content)
-            step.output = final
-        await cl.Message(content=final).send()
-        return
+    # 1. Planning phase with HITL gate
+    while True:
+        async with cl.Step(name="Plan") as step:
+            plan, plan_json, skill = await asyncio.to_thread(agent.plan, user_message=user_input)
+            step.output = "```json\n" + plan_json.strip() + "\n```"
 
+        if plan.action == "chat":
+            async with cl.Step(name="Respond") as step:
+                final = await asyncio.to_thread(agent.chat, user_message=user_input)
+                step.output = final
+            await cl.Message(content=final).send()
+            return
+
+        # Human-in-the-loop: Approve Plan
+        actions = [
+            cl.Action(name="approve", payload={"value": "approve"}, label="✅ Approve Plan"),
+            cl.Action(name="replan", payload={"value": "replan"}, label="🔄 Re-plan"),
+            cl.Action(name="cancel", payload={"value": "cancel"}, label="❌ Cancel Request"),
+        ]
+
+        res = await cl.AskActionMessage(
+            content=f"Proposed Plan: **{plan.intent}**\n\nDo you want me to proceed with code generation and execution?",
+            actions=actions,
+            timeout=3600,
+            raise_on_timeout=False,
+        ).send()
+
+        choice = None
+        if isinstance(res, dict):
+            payload = res.get("payload")
+            if isinstance(payload, dict):
+                choice = payload.get("value")
+
+        if choice == "approve":
+            break
+        elif choice == "replan":
+            feedback = await cl.AskUserMessage(content="What should I change in the plan?").send()
+            if feedback:
+                user_input += f"\n\n[User feedback on previous plan]: {feedback['output']}"
+                continue
+            else:
+                await cl.Message(content="Re-plan cancelled. Stopping workflow.").send()
+                return
+        else:
+            await cl.Message(content="Workflow cancelled.").send()
+            return
+
+    # 2. Execution phase (Codegen + Run)
     skill_md = await asyncio.to_thread(agent.get_skill_md, plan=plan, selected_skill=skill)
 
     last_code = ""
@@ -41,7 +80,7 @@ async def on_message(message: cl.Message):
             try:
                 code = await asyncio.to_thread(
                     agent.codegen,
-                    user_message=message.content,
+                    user_message=user_input,
                     plan_json=plan_json,
                     skill_md=skill_md,
                     attempt=attempt,
@@ -74,7 +113,7 @@ async def on_message(message: cl.Message):
     async with cl.Step(name="Respond") as step:
         final = await asyncio.to_thread(
             agent.respond,
-            user_message=message.content,
+            user_message=user_input,
             plan_json=plan_json,
             executed_code=last_code,
             exec_result=exec_result,

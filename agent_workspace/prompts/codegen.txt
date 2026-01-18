@@ -1,36 +1,27 @@
-Write a complete, runnable Python script that fulfills the user request using the provided SKILL.md.
+Write a complete, runnable Python script that fulfills the user request by strictly following the steps in the provided Plan JSON.
 
-User request:
-{user_message}
+### Inputs:
+- User request: {user_message}
+- Plan JSON: {plan_json}
+- Skill manual (SKILL.md): {skill_md}
+- Tool contracts: {tool_contracts}
 
-Plan JSON:
-{plan_json}
+### Implementation Rules:
+1. STRICT ADHERENCE: Follow the steps in the Plan JSON exactly. Do not add steps or skip steps.
+2. PROGRESSIVE LOGGING: Print clear [INFO] or [PROGRESS] lines for each major step so the user can see what the agent is doing in real-time.
+3. ERROR HANDLING: Be defensive. Check tool outputs and handle cases where no matches are found (e.g. employee search). Print clear [ERROR] messages and exit with code 1 on fatal issues.
+4. DETERMINISM: If multiple items match a search, use a logical tie-breaker (e.g. exact name match) and print which one was chosen.
+5. NO PLACEHOLDERS: All code must be complete and runnable.
 
-Skill manual (SKILL.md):
-{skill_md}
-
-Tool contracts (mcp_tools APIs and data shape):
-{tool_contracts}
-
-Retry context (may be empty):
-Attempt: {attempt}
-Previous error:
-{previous_error}
-Previous code:
-{previous_code}
-
-Constraints:
+### Constraints:
 - Use only Python standard library plus the local package "mcp_tools".
-- Import tool modules from "mcp_tools" (e.g. `import mcp_tools.bamboo_hr as bamboo_hr`, `import mcp_tools.slack as slack`).
-- Do not import chainlit.
+- Import tool modules from "mcp_tools" (e.g. `import mcp_tools.bamboo_hr as bamboo_hr`).
 - Do not use input(), sys.argv, or any interactive prompts.
-- Do not wait/sleep, start servers, or run infinite loops.
-- Print clear progress lines and a final summary.
-- No placeholders like TODO.
-- Treat all BambooHR employees as plain dicts; do not assume nested objects.
-- Call tools using normal Python function arguments (positional/keyword), not MCP JSON payload objects.
-  - Good: `bamboo_hr.search_employees(query="Davis")`
-  - Bad: `bamboo_hr.search_employees({{"query": "Davis"}})`
-- When a tool schema marks a field as required (e.g. Slack `send_dm` requires `message`), always pass it.
+- Print a clear "=== FINAL SUMMARY ===" at the end with key results.
+
+Retry context (if any):
+Attempt: {attempt}
+Previous error: {previous_error}
+Previous code: {previous_code}
 
 Return ONLY a single Python code block.

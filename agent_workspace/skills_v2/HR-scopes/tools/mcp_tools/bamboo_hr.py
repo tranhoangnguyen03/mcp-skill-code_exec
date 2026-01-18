@@ -4,6 +4,12 @@ from dataclasses import dataclass, replace
 from datetime import date, datetime, timedelta
 from typing import Iterable
 
+from ._data import load_json
+
+
+def _parse_date(value: str) -> date:
+    return datetime.strptime(value, "%Y-%m-%d").date()
+
 
 @dataclass(frozen=True)
 class Employee:
@@ -18,97 +24,21 @@ class Employee:
     manager_slack_id: str
 
 
-_TODAY = date.today()
-_EMPLOYEES = [
-    Employee(
-        id=101,
-        name="Alice Chen",
-        dept="Engineering",
-        role="Software Engineer",
-        status="Active",
-        hire_date=_TODAY,
-        manager="Dana Patel",
-        slack_id="U_ALICE",
-        manager_slack_id="U_DANA",
-    ),
-    Employee(
-        id=102,
-        name="Bob Smith",
-        dept="Sales",
-        role="Account Executive",
-        status="Active",
-        hire_date=_TODAY,
-        manager="Evan Lee",
-        slack_id="U_BOB",
-        manager_slack_id="U_EVAN",
-    ),
-    Employee(
-        id=103,
-        name="Charlie Davis",
-        dept="Engineering",
-        role="DevOps Engineer",
-        status="Active",
-        hire_date=_TODAY,
-        manager="Dana Patel",
-        slack_id="U_CHARLIE",
-        manager_slack_id="U_DANA",
-    ),
-    Employee(
-        id=104,
-        name="Priya Nair",
-        dept="Engineering",
-        role="QA Engineer",
-        status="Active",
-        hire_date=_TODAY - timedelta(days=90),
-        manager="Dana Patel",
-        slack_id="U_PRIYA",
-        manager_slack_id="U_DANA",
-    ),
-    Employee(
-        id=105,
-        name="Maya Lopez",
-        dept="People",
-        role="HR Generalist",
-        status=f"Offboarding ({(_TODAY + timedelta(days=14)).isoformat()})",
-        hire_date=_TODAY - timedelta(days=730),
-        manager="Nina Kim",
-        slack_id="U_MAYA",
-        manager_slack_id="U_NINA",
-    ),
-    Employee(
-        id=106,
-        name="Jordan Lee",
-        dept="Engineering",
-        role="Engineering Manager",
-        status="Active",
-        hire_date=_TODAY - timedelta(days=1100),
-        manager="Riley Kim",
-        slack_id="U_JORDAN",
-        manager_slack_id="U_RILEY",
-    ),
-    Employee(
-        id=107,
-        name="Riley Kim",
-        dept="People",
-        role="People Ops Manager",
-        status="Active",
-        hire_date=_TODAY - timedelta(days=1600),
-        manager="Evan Park",
-        slack_id="U_RILEY",
-        manager_slack_id="U_EVANP",
-    ),
-    Employee(
-        id=108,
-        name="Morgan Patel",
-        dept="Sales",
-        role="Account Executive",
-        status="Active",
-        hire_date=_TODAY - timedelta(days=900),
-        manager="Evan Lee",
-        slack_id="U_MORGAN",
-        manager_slack_id="U_EVAN",
-    ),
-]
+_EMPLOYEES = []
+for row in load_json("bamboo_hr/employees.json"):
+    _EMPLOYEES.append(
+        Employee(
+            id=int(row["id"]),
+            name=str(row["name"]),
+            dept=str(row["dept"]),
+            role=str(row["role"]),
+            status=str(row["status"]),
+            hire_date=_parse_date(str(row["hire_date"])),
+            manager=str(row["manager"]),
+            slack_id=str(row["slack_id"]),
+            manager_slack_id=str(row["manager_slack_id"]),
+        )
+    )
 
 
 def list_employees(status: str | None = None) -> list[dict]:
@@ -223,10 +153,6 @@ def mark_offboarding(employee_id: int, effective_date: str | None = None) -> dic
     effective = _parse_date(effective_date) if effective_date else date.today()
     updated = update_employee(employee_id, {"status": f"Offboarding ({effective.isoformat()})"})
     return updated
-
-
-def _parse_date(value: str) -> date:
-    return datetime.strptime(value, "%Y-%m-%d").date()
 
 
 def _to_dict(e: Employee) -> dict:

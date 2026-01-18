@@ -3,6 +3,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import date, timedelta
 
+from ._data import load_json
+
 @dataclass(frozen=True)
 class ReviewCycle:
     id: str
@@ -19,13 +21,17 @@ class LatticeUser:
 
 _CYCLES = []
 
-# Mock database of users with varying tenure
 _TODAY = date.today()
-_USERS = [
-    LatticeUser("101", "Alice Chen", (_TODAY - timedelta(days=30)).isoformat(), "102"), # New hire (< 3 months)
-    LatticeUser("102", "Bob Smith", (_TODAY - timedelta(days=400)).isoformat(), "103"), # > 1 year
-    LatticeUser("103", "Charlie Davis", (_TODAY - timedelta(days=120)).isoformat(), "104"), # > 3 months
-]
+_USERS: list[LatticeUser] = []
+for row in load_json("lattice/users.json"):
+    _USERS.append(
+        LatticeUser(
+            id=str(row["id"]),
+            name=str(row["name"]),
+            start_date=str(row["start_date"]),
+            manager_id=str(row["manager_id"]),
+        )
+    )
 
 def create_cycle(name: str, due_date: str) -> dict:
     """Creates a new performance review cycle."""

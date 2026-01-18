@@ -1,0 +1,12 @@
+{
+  "name": "candidate_tracker",
+  "description": "Mock ATS-like candidate tracking and interview logging.",
+  "python_module": "mcp_tools.candidate_tracker",
+  "tools": [
+    "list_candidates",
+    "get_candidate",
+    "search_candidates",
+    "update_candidate_stage",
+    "add_interview_log"
+  ]
+}

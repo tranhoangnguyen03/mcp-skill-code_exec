@@ -10,6 +10,24 @@ from tests.utils.qualitative_judge import HeuristicJudge, OpenRouterJudge, evalu
 from tests.utils.scenario_harness import Scenario, run_scenario
 
 
+HR_SKILLS = {
+    "Daily New Hires Digest",
+    "Onboard New Hires",
+    "Probation Check-in Reminders",
+    "Offboard Employee",
+    "Offboarding Queue Review",
+    "Role Change + Access Review",
+    "Leave & Absence Management",
+    "Performance Review Cycle",
+}
+
+RECRUITMENT_SKILLS = {
+    "Schedule Candidate Interviews",
+    "Chase Interview Feedback",
+    "Candidate Pipeline Review",
+}
+
+
 class DeterministicScenarioAgentLLM:
     def __init__(self, *, request_to_skill: dict[str, str], code_by_skill: dict[str, str]):
         self.request_to_skill = request_to_skill
@@ -26,7 +44,7 @@ class DeterministicScenarioAgentLLM:
             return json.dumps(
                 {
                     "action": "execute_skill",
-                    "skill_group": "HR-scopes",
+                    "skill_group": "HR-scopes" if skill_name in HR_SKILLS else "Recruitment-scopes" if skill_name in RECRUITMENT_SKILLS else "Procurement-scopes",
                     "skill_name": skill_name,
                     "intent": f"Resolve request using {skill_name}",
                     "steps": ["follow skill logic flow"],
@@ -211,6 +229,19 @@ ticket = jira.create_ticket(
 )
 slack.post_message(channel="#procurement", message=f"New purchase request: {ticket}. Please review.")
 print("ticket", ticket)
+""",
+    "Candidate Pipeline Review": """
+import mcp_tools.candidate_tracker as tracker
+import mcp_tools.slack as slack
+
+candidates = tracker.list_candidates(stage="Technical", status="In-progress")
+lines = []
+for c in candidates:
+    lines.append(f"- {c['name']} ({c['role']}) - Source: {c['source']}")
+
+report = "Technical Interview Pipeline:\\n" + "\\n".join(lines) if lines else "No candidates in Technical stage."
+slack.post_message(channel="#recruiting", message=report)
+print("count", len(candidates))
 """,
 }
 
@@ -419,6 +450,25 @@ SCENARIOS: list[Scenario] = [
             r"\[Slack\] Posted in #procurement:",
         ],
         required_response_keywords=["completed", "create purchase request"],
+    ),
+    Scenario(
+        name="Candidate Pipeline Review",
+        expected_skill="Candidate Pipeline Review",
+        expected_skill_group="Recruitment-scopes",
+        user_requests=[
+            "Who is in the technical interview stage? Send a summary to #recruiting.",
+            "Review the technical interview pipeline and notify #recruiting.",
+        ],
+        required_code_patterns=[
+            r"import mcp_tools\.candidate_tracker",
+            r"import mcp_tools\.slack",
+            r"tracker\.list_candidates\(stage=\"Technical\"",
+            r"slack\.post_message\(",
+        ],
+        required_log_patterns=[
+            r"count [1-9]",
+        ],
+        required_response_keywords=["completed", "candidate pipeline review"],
     ),
 ]
 

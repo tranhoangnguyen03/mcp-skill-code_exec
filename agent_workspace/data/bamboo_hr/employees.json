@@ -1,0 +1,91 @@
+[
+  {
+    "id": 101,
+    "name": "Alice Chen",
+    "dept": "Engineering",
+    "role": "Software Engineer",
+    "status": "Active",
+    "hire_date": "${TODAY}",
+    "manager": "Dana Patel",
+    "slack_id": "U_ALICE",
+    "manager_slack_id": "U_DANA"
+  },
+  {
+    "id": 102,
+    "name": "Bob Smith",
+    "dept": "Sales",
+    "role": "Account Executive",
+    "status": "Active",
+    "hire_date": "${TODAY}",
+    "manager": "Evan Lee",
+    "slack_id": "U_BOB",
+    "manager_slack_id": "U_EVAN"
+  },
+  {
+    "id": 103,
+    "name": "Charlie Davis",
+    "dept": "Engineering",
+    "role": "DevOps Engineer",
+    "status": "Active",
+    "hire_date": "${TODAY}",
+    "manager": "Dana Patel",
+    "slack_id": "U_CHARLIE",
+    "manager_slack_id": "U_DANA"
+  },
+  {
+    "id": 104,
+    "name": "Priya Nair",
+    "dept": "Engineering",
+    "role": "QA Engineer",
+    "status": "Active",
+    "hire_date": "${TODAY_MINUS_90}",
+    "manager": "Dana Patel",
+    "slack_id": "U_PRIYA",
+    "manager_slack_id": "U_DANA"
+  },
+  {
+    "id": 105,
+    "name": "Maya Lopez",
+    "dept": "People",
+    "role": "HR Generalist",
+    "status": "Offboarding (${TODAY_PLUS_14})",
+    "hire_date": "${TODAY_MINUS_730}",
+    "manager": "Nina Kim",
+    "slack_id": "U_MAYA",
+    "manager_slack_id": "U_NINA"
+  },
+  {
+    "id": 106,
+    "name": "Jordan Lee",
+    "dept": "Engineering",
+    "role": "Engineering Manager",
+    "status": "Active",
+    "hire_date": "${TODAY_MINUS_1100}",
+    "manager": "Riley Kim",
+    "slack_id": "U_JORDAN",
+    "manager_slack_id": "U_RILEY"
+  },
+  {
+    "id": 107,
+    "name": "Riley Kim",
+    "dept": "People",
+    "role": "People Ops Manager",
+    "status": "Active",
+    "hire_date": "${TODAY_MINUS_1600}",
+    "manager": "Evan Park",
+    "slack_id": "U_RILEY",
+    "manager_slack_id": "U_EVANP"
+  },
+  {
+    "id": 108,
+    "name": "Morgan Patel",
+    "dept": "Sales",
+    "role": "Account Executive",
+    "status": "Active",
+    "hire_date": "${TODAY_MINUS_900}",
+    "manager": "Evan Lee",
+    "slack_id": "U_MORGAN",
+    "manager_slack_id": "U_EVAN"
+  }
+]
+

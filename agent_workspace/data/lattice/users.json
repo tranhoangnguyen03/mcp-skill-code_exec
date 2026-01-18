@@ -1,0 +1,21 @@
+[
+  {
+    "id": "101",
+    "name": "Alice Chen",
+    "start_date": "${TODAY_MINUS_30}",
+    "manager_id": "102"
+  },
+  {
+    "id": "102",
+    "name": "Bob Smith",
+    "start_date": "${TODAY_MINUS_400}",
+    "manager_id": "103"
+  },
+  {
+    "id": "103",
+    "name": "Charlie Davis",
+    "start_date": "${TODAY_MINUS_120}",
+    "manager_id": "104"
+  }
+]
+
