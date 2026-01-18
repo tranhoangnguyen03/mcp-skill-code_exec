@@ -5,6 +5,7 @@ import re
 from dataclasses import dataclass
 from pathlib import Path
 
+from .baml_bridge import workflow_codegen, workflow_plan
 from .code_executor import PythonCodeExecutor
 from .mcp_docs_registry import MCPDocsRegistry
 from .openrouter_client import LLMMessage, OpenRouterClient
@@ -68,13 +69,21 @@ class HRAgent:
         skills_readme = self.skills.read_skills_readme()
         skills = self.skills.list_skills()
 
-        plan_prompt = self.prompts.load("plan.txt").format(
-            user_message=user_message,
-            skills_readme=skills_readme,
-            skill_names=", ".join([s.name for s in skills]) or "(none)",
-        )
-        plan_text = self.llm.chat([LLMMessage(role="user", content=plan_prompt)], temperature=0.1)
-        plan = _parse_plan(plan_text, skills)
+        try:
+            plan_data = workflow_plan(
+                user_message=user_message,
+                skills_readme=skills_readme,
+                skill_names=[s.name for s in skills],
+            )
+            plan = _plan_from_dict(plan_data, skills)
+        except Exception:
+            plan_prompt = self.prompts.load("plan.txt").format(
+                user_message=user_message,
+                skills_readme=skills_readme,
+                skill_names=", ".join([s.name for s in skills]) or "(none)",
+            )
+            plan_text = self.llm.chat([LLMMessage(role="user", content=plan_prompt)], temperature=0.1)
+            plan = _parse_plan(plan_text, skills)
         selected_skill = None
         if plan.action == "execute_skill" and plan.skill_name:
             selected_skill = next(s for s in skills if s.name == plan.skill_name)
@@ -116,16 +125,27 @@ class HRAgent:
         previous_code: str = "",
     ) -> str:
         tool_contracts = self._docs_registry_for_plan(plan_json=plan_json).render_tool_contracts()
-        code_prompt = self.prompts.load("codegen.txt").format(
-            user_message=user_message,
-            plan_json=plan_json,
-            skill_md=skill_md,
-            tool_contracts=tool_contracts,
-            attempt=attempt,
-            previous_error=previous_error,
-            previous_code=previous_code,
-        )
-        code = self.llm.chat([LLMMessage(role="user", content=code_prompt)], temperature=0.2)
+        try:
+            code = workflow_codegen(
+                user_message=user_message,
+                plan_json=plan_json,
+                skill_md=skill_md,
+                tool_contracts=tool_contracts,
+                attempt=attempt,
+                previous_error=previous_error,
+                previous_code=previous_code,
+            )
+        except Exception:
+            code_prompt = self.prompts.load("codegen.txt").format(
+                user_message=user_message,
+                plan_json=plan_json,
+                skill_md=skill_md,
+                tool_contracts=tool_contracts,
+                attempt=attempt,
+                previous_error=previous_error,
+                previous_code=previous_code,
+            )
+            code = self.llm.chat([LLMMessage(role="user", content=code_prompt)], temperature=0.2)
         extracted = _extract_code_block(code)
         compile(extracted, "<generated>", "exec")
         return extracted
@@ -236,7 +256,10 @@ def _parse_plan(plan_text: str, skills):
         cleaned = cleaned.split("```", 2)[1]
     cleaned = cleaned.strip()
     data = json.loads(cleaned)
+    return _plan_from_dict(data, skills)
 
+
+def _plan_from_dict(data: dict, skills) -> Plan:
     action = str(data.get("action") or "").strip()
     if action not in {"chat", "execute_skill", "custom_script"}:
         raise ValueError(f"Unknown action: {action}")

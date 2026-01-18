@@ -1,14 +1,18 @@
-# Welcome to Chainlit! 🚀🤖
+# Skill-Based Workflow Agent (Chainlit UI)
 
-Hi there, Developer! 👋 We're excited to have you on board. Chainlit is a powerful tool designed to help you prototype, debug and share applications built on top of LLMs.
+This UI runs a skill-based automation agent with a human-in-the-loop approval gate.
 
-## Useful Links 🔗
+## What happens on each message
 
-- **Documentation:** Get started with our comprehensive [Chainlit Documentation](https://docs.chainlit.io) 📚
-- **Discord Community:** Join our friendly [Chainlit Discord](https://discord.gg/k73SQ3FyUh) to ask questions, share your projects, and connect with other developers! 💬
+1. The agent proposes a plan (`chat`, `execute_skill`, or `custom_script`) and shows it in the UI.
+2. The UI pauses and asks you to choose:
+   - Approve Plan: proceed to code generation and execution
+   - Re-plan: provide feedback and regenerate the plan
+   - Cancel Request: stop the workflow
+3. If approved, the UI shows code generation, execution logs, and a final response.
 
-We can't wait to see what you create with Chainlit! Happy coding! 💻😊
+## Run
 
-## Welcome screen
-
-To modify the welcome screen, edit the `chainlit.md` file at the root of your project. If you do not want a welcome screen, just leave this file empty.
+```bash
+chainlit run chainlit_app_v2.py
+```

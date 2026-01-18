@@ -9,7 +9,7 @@ This repo includes mock integrations for BambooHR, Jira, and Slack under `agent_
 
 ## How it works
 
-- **Plan**: classify the request as `chat`, `execute_skill`, or `custom_script`
+- **Plan**: classify the request as `chat`, `execute_skill`, or `custom_script` (intent-first, avoid over-engineering)
 - **Codegen**: generate a runnable Python script using either:
   - a specific `SKILL.md` manual (scripted skills), or
   - a generic custom workflow manual (no skill match)
@@ -82,6 +82,11 @@ python agent_workspace/main.py
 ```bash
 chainlit run chainlit_app_v2.py
 ```
+
+The UI shows the generated plan first and pauses for human approval before code generation/execution:
+- Approve Plan: continue
+- Re-plan: provide feedback and regenerate the plan
+- Cancel Request: stop the workflow
 
 ## Skills and tools
 

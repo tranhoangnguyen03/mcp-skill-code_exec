@@ -38,7 +38,10 @@ class DeterministicScenarioAgentLLM:
         content = messages[-1].content
 
         if "Return ONLY valid JSON" in content:
-            user_request = content.split("User request:\n", 1)[1].split("\n\nSupported skills:", 1)[0].strip()
+            m = re.search(r"User request:\n(.*?)\n\nReturn ONLY valid JSON\.", content, re.DOTALL)
+            if not m:
+                raise AssertionError("Failed to extract user request from planning prompt")
+            user_request = m.group(1).strip()
             skill_name = self.request_to_skill[user_request]
             self._last_skill = skill_name
             return json.dumps(
