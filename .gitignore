@@ -20,3 +20,4 @@ htmlcov/
 .chainlit/db/
 agent_workspace/.chainlit/.files/
 agent_workspace/.chainlit/db/
+agent_workspace/memory/sessions/

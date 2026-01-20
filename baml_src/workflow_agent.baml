@@ -1,11 +1,5 @@
-enum PlanAction {
-  Chat
-  ExecuteSkill
-  CustomScript
-}
-
 class Plan {
-  action PlanAction
+  action string
   skill_group string?
   skill_name string?
   intent string
@@ -138,25 +132,34 @@ Return ONLY a single Python code block.
 "#
 }
 
-function WorkflowChat(user_message: string, skills_readme: string, custom_skill_md: string) -> string {
+class ChatResponse {
+  final_response string
+}
+
+function WorkflowChat(user_message: string, skills_readme: string, custom_skill_md: string) -> ChatResponse {
   client OpenRouterChat
   prompt #"
-You are a helpful chat assistant for a workflow automation agent.
+    You are a helpful chat assistant for a workflow automation agent.
 
-When users ask about your capabilities (e.g., \"what can you do?\"), you must describe what THIS agent can do based on the provided repo documentation.
+    Goal: Respond to the user's message.
+    
+    Context:
+    Supported capabilities:
+    {{ skills_readme }}
 
-Supported skill groups and skills:
-{{ skills_readme }}
+    Custom scripts:
+    {{ custom_skill_md }}
 
-Custom script manual:
-{{ custom_skill_md }}
+    User message: {{ user_message }}
 
-User message:
-{{ user_message }}
-
-Response requirements:
-- Keep it brief and concrete (scopes, example tasks, and how custom scripts work).\n+- Do not claim capabilities outside the tools/scopes described above.\n+- If the user is not asking about capabilities, respond normally and briefly.
-"#
+    Instructions:
+    1. If the user asks about capabilities, describe what THIS agent can do based on the Context.
+    2. If the user greets or asks something else, respond normally and briefly.
+    3. Do NOT claim capabilities outside the Context.
+    4. Do NOT output any reasoning or thoughts.
+    
+    {{ ctx.output_format }}
+  "#
 }
 
 function WorkflowRespond(

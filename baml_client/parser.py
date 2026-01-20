@@ -26,9 +26,9 @@ class LlmResponseParser:
 
     def WorkflowChat(
         self, llm_response: str, baml_options: BamlCallOptions = {},
-    ) -> str:
+    ) -> types.ChatResponse:
         __result__ = self.__options.merge_options(baml_options).parse_response(function_name="WorkflowChat", llm_response=llm_response, mode="request")
-        return typing.cast(str, __result__)
+        return typing.cast(types.ChatResponse, __result__)
 
     def WorkflowCodegen(
         self, llm_response: str, baml_options: BamlCallOptions = {},
@@ -64,9 +64,9 @@ class LlmStreamParser:
 
     def WorkflowChat(
         self, llm_response: str, baml_options: BamlCallOptions = {},
-    ) -> str:
+    ) -> stream_types.ChatResponse:
         __result__ = self.__options.merge_options(baml_options).parse_response(function_name="WorkflowChat", llm_response=llm_response, mode="stream")
-        return typing.cast(str, __result__)
+        return typing.cast(stream_types.ChatResponse, __result__)
 
     def WorkflowCodegen(
         self, llm_response: str, baml_options: BamlCallOptions = {},

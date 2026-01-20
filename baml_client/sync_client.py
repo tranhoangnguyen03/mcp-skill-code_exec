@@ -96,7 +96,7 @@ class BamlSyncClient:
 
     def WorkflowChat(self, user_message: str,skills_readme: str,custom_skill_md: str,
         baml_options: BamlCallOptions = {},
-    ) -> str:
+    ) -> types.ChatResponse:
         # Check if on_tick is provided
         if 'on_tick' in baml_options:
             __stream__ = self.stream.WorkflowChat(user_message=user_message,skills_readme=skills_readme,custom_skill_md=custom_skill_md,
@@ -107,7 +107,7 @@ class BamlSyncClient:
             __result__ = self.__options.merge_options(baml_options).call_function_sync(function_name="WorkflowChat", args={
                 "user_message": user_message,"skills_readme": skills_readme,"custom_skill_md": custom_skill_md,
             })
-            return typing.cast(str, __result__.cast_to(types, types, stream_types, False, __runtime__))
+            return typing.cast(types.ChatResponse, __result__.cast_to(types, types, stream_types, False, __runtime__))
     def WorkflowCodegen(self, user_message: str,plan_json: str,skill_md: str,tool_contracts: str,attempt: int,previous_error: str,previous_code: str,
         baml_options: BamlCallOptions = {},
     ) -> str:
@@ -175,14 +175,14 @@ class BamlStreamClient:
 
     def WorkflowChat(self, user_message: str,skills_readme: str,custom_skill_md: str,
         baml_options: BamlCallOptions = {},
-    ) -> baml_py.BamlSyncStream[str, str]:
+    ) -> baml_py.BamlSyncStream[stream_types.ChatResponse, types.ChatResponse]:
         __ctx__, __result__ = self.__options.merge_options(baml_options).create_sync_stream(function_name="WorkflowChat", args={
             "user_message": user_message,"skills_readme": skills_readme,"custom_skill_md": custom_skill_md,
         })
-        return baml_py.BamlSyncStream[str, str](
+        return baml_py.BamlSyncStream[stream_types.ChatResponse, types.ChatResponse](
           __result__,
-          lambda x: typing.cast(str, x.cast_to(types, types, stream_types, True, __runtime__)),
-          lambda x: typing.cast(str, x.cast_to(types, types, stream_types, False, __runtime__)),
+          lambda x: typing.cast(stream_types.ChatResponse, x.cast_to(types, types, stream_types, True, __runtime__)),
+          lambda x: typing.cast(types.ChatResponse, x.cast_to(types, types, stream_types, False, __runtime__)),
           __ctx__,
         )
     def WorkflowCodegen(self, user_message: str,plan_json: str,skill_md: str,tool_contracts: str,attempt: int,previous_error: str,previous_code: str,

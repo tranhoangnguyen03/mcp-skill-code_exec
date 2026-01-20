@@ -37,20 +37,18 @@ def get_checks(checks: typing.Dict[CheckName, Check]) -> typing.List[Check]:
 def all_succeeded(checks: typing.Dict[CheckName, Check]) -> bool:
     return all(check.status == "succeeded" for check in get_checks(checks))
 # #########################################################################
-# Generated enums (1)
+# Generated enums (0)
 # #########################################################################
 
-class PlanAction(str, Enum):
-    Chat = "Chat"
-    ExecuteSkill = "ExecuteSkill"
-    CustomScript = "CustomScript"
+# #########################################################################
+# Generated classes (2)
+# #########################################################################
 
-# #########################################################################
-# Generated classes (1)
-# #########################################################################
+class ChatResponse(BaseModel):
+    final_response: str
 
 class Plan(BaseModel):
-    action: PlanAction
+    action: str
     skill_group: typing.Optional[str] = None
     skill_name: typing.Optional[str] = None
     intent: str

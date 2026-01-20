@@ -102,7 +102,13 @@ name = "Assistant"
 
 # layout = "wide"
 
-# default_sidebar_state = "open"
+# default_sidebar_state = "expanded"  # "collapsed" or "expanded"
+
+# Show the chat history in the sidebar
+show_chat_history = true
+
+# Enable thread history in the sidebar
+enable_thread_history = true
 
 # Description of the assistant. This is used for HTML tags.
 # description = ""

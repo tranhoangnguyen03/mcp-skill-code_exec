@@ -23,11 +23,14 @@ class StreamState(BaseModel, typing.Generic[StreamStateValueT]):
     value: StreamStateValueT
     state: typing_extensions.Literal["Pending", "Incomplete", "Complete"]
 # #########################################################################
-# Generated classes (1)
+# Generated classes (2)
 # #########################################################################
 
+class ChatResponse(BaseModel):
+    final_response: typing.Optional[str] = None
+
 class Plan(BaseModel):
-    action: typing.Optional[types.PlanAction] = None
+    action: typing.Optional[str] = None
     skill_group: typing.Optional[str] = None
     skill_name: typing.Optional[str] = None
     intent: typing.Optional[str] = None

@@ -16,10 +16,11 @@ from . import stream_types
 
 type_map = {
 
+    "types.ChatResponse": types.ChatResponse,
+    "stream_types.ChatResponse": stream_types.ChatResponse,
+
     "types.Plan": types.Plan,
     "stream_types.Plan": stream_types.Plan,
 
-
-    "types.PlanAction": types.PlanAction,
 
 }

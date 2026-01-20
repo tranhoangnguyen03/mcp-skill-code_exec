@@ -20,23 +20,23 @@ from .globals import DO_NOT_USE_DIRECTLY_UNLESS_YOU_KNOW_WHAT_YOURE_DOING_RUNTIM
 class TypeBuilder(type_builder.TypeBuilder):
     def __init__(self):
         super().__init__(classes=set(
-          ["Plan",]
+          ["ChatResponse","Plan",]
         ), enums=set(
-          ["PlanAction",]
+          []
         ), runtime=DO_NOT_USE_DIRECTLY_UNLESS_YOU_KNOW_WHAT_YOURE_DOING_RUNTIME)
 
     # #########################################################################
-    # Generated enums 1
+    # Generated enums 0
+    # #########################################################################
+
+
+    # #########################################################################
+    # Generated classes 2
     # #########################################################################
 
     @property
-    def PlanAction(self) -> "PlanActionViewer":
-        return PlanActionViewer(self)
-
-
-    # #########################################################################
-    # Generated classes 1
-    # #########################################################################
+    def ChatResponse(self) -> "ChatResponseViewer":
+        return ChatResponseViewer(self)
 
     @property
     def Plan(self) -> "PlanViewer":
@@ -45,59 +45,52 @@ class TypeBuilder(type_builder.TypeBuilder):
 
 
 # #########################################################################
-# Generated enums 1
+# Generated enums 0
 # #########################################################################
 
-class PlanActionAst:
+
+# #########################################################################
+# Generated classes 2
+# #########################################################################
+
+class ChatResponseAst:
     def __init__(self, tb: type_builder.TypeBuilder):
         _tb = tb._tb # type: ignore (we know how to use this private attribute)
-        self._bldr = _tb.enum("PlanAction")
-        self._values: typing.Set[str] = set([  "Chat",  "ExecuteSkill",  "CustomScript",  ])
-        self._vals = PlanActionValues(self._bldr, self._values)
+        self._bldr = _tb.class_("ChatResponse")
+        self._properties: typing.Set[str] = set([  "final_response",  ])
+        self._props = ChatResponseProperties(self._bldr, self._properties)
 
     def type(self) -> baml_py.FieldType:
         return self._bldr.field()
 
     @property
-    def values(self) -> "PlanActionValues":
-        return self._vals
+    def props(self) -> "ChatResponseProperties":
+        return self._props
 
 
-class PlanActionViewer(PlanActionAst):
+class ChatResponseViewer(ChatResponseAst):
     def __init__(self, tb: type_builder.TypeBuilder):
         super().__init__(tb)
 
     
-    def list_values(self) -> typing.List[typing.Tuple[str, type_builder.EnumValueViewer]]:
-        return [(name, type_builder.EnumValueViewer(self._bldr.value(name))) for name in self._values]
+    def list_properties(self) -> typing.List[typing.Tuple[str, type_builder.ClassPropertyViewer]]:
+        return [(name, type_builder.ClassPropertyViewer(self._bldr.property(name))) for name in self._properties]
     
 
-class PlanActionValues:
-    def __init__(self, enum_bldr: baml_py.EnumBuilder, values: typing.Set[str]):
-        self.__bldr = enum_bldr
-        self.__values = values # type: ignore (we know how to use this private attribute) # noqa: F821
+
+class ChatResponseProperties:
+    def __init__(self, bldr: baml_py.ClassBuilder, properties: typing.Set[str]):
+        self.__bldr = bldr
+        self.__properties = properties # type: ignore (we know how to use this private attribute) # noqa: F821
 
     
     
     @property
-    def Chat(self) -> type_builder.EnumValueViewer:
-        return type_builder.EnumValueViewer(self.__bldr.value("Chat"))
-    
-    @property
-    def ExecuteSkill(self) -> type_builder.EnumValueViewer:
-        return type_builder.EnumValueViewer(self.__bldr.value("ExecuteSkill"))
-    
-    @property
-    def CustomScript(self) -> type_builder.EnumValueViewer:
-        return type_builder.EnumValueViewer(self.__bldr.value("CustomScript"))
+    def final_response(self) -> type_builder.ClassPropertyViewer:
+        return type_builder.ClassPropertyViewer(self.__bldr.property("final_response"))
     
     
 
-
-
-# #########################################################################
-# Generated classes 1
-# #########################################################################
 
 class PlanAst:
     def __init__(self, tb: type_builder.TypeBuilder):

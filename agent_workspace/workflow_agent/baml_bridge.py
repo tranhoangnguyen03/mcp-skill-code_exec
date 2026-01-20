@@ -86,7 +86,8 @@ def workflow_codegen(
 def workflow_chat(*, user_message: str, skills_readme: str, custom_skill_md: str) -> str:
     from baml_client.sync_client import b
 
-    return b.WorkflowChat(user_message=user_message, skills_readme=skills_readme, custom_skill_md=custom_skill_md)
+    result = b.WorkflowChat(user_message=user_message, skills_readme=skills_readme, custom_skill_md=custom_skill_md)
+    return result.final_response
 
 
 def workflow_respond(

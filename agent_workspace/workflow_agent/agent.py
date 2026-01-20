@@ -359,7 +359,6 @@ def _extract_code_block(text: str) -> str:
         code = code.split("\n", 1)[1]
     return code.strip()
 
-
 def _env_bool(name: str, *, default: bool = False) -> bool:
     value = os.getenv(name)
     if value is None:

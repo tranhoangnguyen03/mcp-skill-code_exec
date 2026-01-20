@@ -22,6 +22,7 @@ This repo includes mock integrations for BambooHR, Jira, Slack, etc. under `agen
 agent_workspace/
   workflow_agent/          Agent logic (plan → codegen → execute → respond)
   skills_v2/               Skill group and example manuals
+  memory/                  Session memory (conversation history + key facts)
   tools/                   Shared runtime tool implementations (mcp_tools)
     HR-scopes/
       examples/            Skill manuals (markdown examples)
@@ -91,6 +92,33 @@ The UI shows the generated plan first and pauses for human approval before code 
 
 - Skills list: [skills_v2/Readme.md](file:///Users/nguyen.tran/Documents/My%20Remote%20Vault/mcp-skill-code_exec/agent_workspace/skills_v2/Readme.md)
 - MCP tool docs (schemas): `agent_workspace/skills_v2/HR-scopes/tools/mcp_docs/`
+
+## Session memory
+
+File-based conversation memory for multi-turn context. Stores conversation turns (`messages[]`) and working step artifacts (`steps[]`). See [memory/Readme.md](agent_workspace/memory/Readme.md).
+
+```python
+from agent_workspace.memory import SessionMemory, StepType, StepCategory, extract_facts_simple
+
+mem = SessionMemory("session_id")
+
+# Add conversation turns (single write path)
+mem.add_response("user", "Submit leave for John Smith")
+mem.add_response("assistant", "Done! LR-123 submitted.")
+
+# Add working step artifacts
+mem.add_working_step(
+    step_type=StepType.PLAN,
+    content='{"action": "execute_skill", "intent": "Submit leave"}',
+    category=StepCategory.WORKING,
+    metadata={"intent": "Submit leave"},
+)
+
+mem.add_facts(extract_facts_simple(user_msg, assistant_msg))
+
+context = mem.get_context_summary()  # For prompt injection
+working_steps = mem.get_working_steps()  # Get plan/code/execution history
+```
 
 ## Supported Scopes & Suggested Queries
 
