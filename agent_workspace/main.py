@@ -6,8 +6,9 @@ from agent_workspace.workflow_agent.agent import WorkflowAgent
 
 
 def load_env():
-    workspace_dir = Path(__file__).resolve().parent
-    env_path = workspace_dir / ".env"
+    # Load .env from project root
+    root_dir = Path(__file__).resolve().parent.parent
+    env_path = root_dir / ".env"
     if env_path.exists():
         load_dotenv(env_path)
 

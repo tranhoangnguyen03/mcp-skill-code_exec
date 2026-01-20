@@ -9,6 +9,8 @@ This repo includes mock integrations for BambooHR, Jira, Slack, etc. under `agen
 
 ## How it works
 
+The agent uses **BAML** for structured LLM interactions and follows a multi-phase workflow:
+
 - **Plan**: classify the request as `chat`, `execute_skill`, or `custom_script` (intent-first, avoid over-engineering)
 - **Codegen**: generate a runnable Python script using either:
   - a specific `SKILL.md` manual (scripted skills), or
@@ -20,24 +22,23 @@ This repo includes mock integrations for BambooHR, Jira, Slack, etc. under `agen
 
 ```
 agent_workspace/
-  workflow_agent/          Agent logic (plan → codegen → execute → respond)
-  skills_v2/               Skill group and example manuals
-  memory/                  Session memory (conversation history + key facts)
-  tools/                   Shared runtime tool implementations (mcp_tools)
+  workflow_agent/          Core logic (agent.py, baml_bridge.py, code_executor.py)
+  skills_v2/               Skill definitions and tool documentation
     HR-scopes/
       examples/            Skill manuals (markdown examples)
       tools/
         mcp_docs/          MCP-style tool documentation (server.json + examples)
     Recruitment-scopes/
-      examples/            Skill manuals (markdown examples)
-      tools/
-        mcp_docs/          Scope-specific MCP docs (progressive disclosure)
+      ...
     Procurement-scopes/
-      examples/            Skill manuals (markdown examples)
-      tools/
-        mcp_docs/          Scope-specific MCP docs (progressive disclosure)
-  .env                     Local OpenRouter config (do not commit)
-tests/                     Unit tests
+      ...
+  memory/                  Session memory (YAML persistence)
+  tools/                   Python implementations of MCP tools (mcp_tools)
+  data/                    Mock JSON data for services
+baml_src/                  BAML source files for LLM prompting
+baml_client/               Generated BAML client
+.env                       Environment configuration (API keys)
+tests/                     Unit and integration tests
 ```
 
 ## Setup
@@ -59,10 +60,10 @@ pip install -r requirements.txt
 Copy the example env file and fill in values:
 
 ```bash
-cp agent_workspace/.env.example agent_workspace/.env
+cp .env.example .env
 ```
 
-`agent_workspace/.env` should contain:
+`.env` should contain:
 
 ```
 open_router_api_key=...

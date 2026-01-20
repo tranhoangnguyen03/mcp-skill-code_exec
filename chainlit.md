@@ -13,33 +13,31 @@ The agent distinguishes between **working steps** and **response steps**:
 
 ## What Happens on Each Message
 
-1. **Plan Phase** (working step): The agent proposes a plan (`chat`, `execute_skill`, or `custom_script`) shown in a Chainlit step
-2. **HITL Gate**: The UI pauses and asks you to choose:
-   - Approve Plan: proceed to code generation and execution
-   - Re-plan: provide feedback and regenerate the plan
-   - Cancel Request: stop the workflow
-3. **Codegen Phase** (working step): Code generation shown as a Chainlit step
-4. **Execute Phase** (working step): Execution output shown as a Chainlit step
-5. **Respond Phase** (response step): Final response shown as a message
+1. **Plan Phase** (working step): The agent proposes a plan (`chat`, `execute_skill`, or `custom_script`) shown in a Chainlit step.
+2. **HITL Gate**: The UI pauses for human approval. You can:
+   - **Approve Plan**: Proceed to code generation and execution.
+   - **Re-plan**: Provide feedback to the agent to refine its plan.
+   - **Cancel Request**: Terminate the current workflow.
+3. **Codegen Phase** (working step): Python code is generated based on the plan and tool documentation.
+4. **Execute Phase** (working step): The code is executed, and stdout/stderr are captured.
+5. **Respond Phase** (response step): The final summary or chat response is sent as a message.
 
 ## Session Memory
 
-Conversation history is stored in YAML files under `agent_workspace/memory/sessions/`:
+Conversation history and working artifacts are persisted as YAML files in `agent_workspace/memory/sessions/`.
 
-For each new user message, the UI also injects a compact transcript of the last N past messages into all LLM steps (plan, codegen, chat, respond). Configure N via `agent_memory_max_messages` (default: 10).
+### YAML Structure Example
 
 ```yaml
-# messages[] stores conversation turns
-messages:
+messages: # Conversation turns (user/assistant dialogue)
   - role: user
-    content: Onboard today's new hires
+    content: "Onboard today's new hires"
     timestamp: '2024-01-20T10:30:00'
   - role: assistant
-    content: Done! 3 employees onboarded.
+    content: "Done! 3 employees onboarded."
     timestamp: '2024-01-20T10:31:00'
 
-# steps[] stores working artifacts (plan, code, execution)
-steps:
+steps: # Working artifacts (internal logic)
   - step_type: plan
     category: working
     content: '{"action": "execute_skill", "intent": "Onboard new hires"}'
@@ -55,6 +53,11 @@ steps:
     content: 'stdout: 3 employees onboarded\nstderr:'
     metadata: {exit_code: 0, attempt: 1}
     timestamp: '2024-01-20T10:31:00'
+
+facts: # Extracted key information
+  - fact: "Alice Smith was onboarded today"
+    source_turn: 1
+    timestamp: '2024-01-20T10:31:05'
 ```
 
 ## Run
