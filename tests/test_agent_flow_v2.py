@@ -5,7 +5,7 @@ from agent_workspace.workflow_agent.agent import WorkflowAgent
 
 
 def test_agent_v2_end_to_end_fake_baml(monkeypatch):
-    def fake_workflow_plan(*, user_message: str, skills_readme: str, skill_names: list[str]) -> dict:
+    def fake_workflow_plan(*, user_message: str, skills_readme: str, skill_names: list[str], skill_groups: list[str]) -> dict:
         return {
             "action": "execute_skill",
             "skill_group": "HR-scopes",
@@ -63,7 +63,7 @@ print("hires:", len(hires))
 
 
 def test_agent_v2_chat_does_not_execute(monkeypatch):
-    def fake_workflow_plan(*, user_message: str, skills_readme: str, skill_names: list[str]) -> dict:
+    def fake_workflow_plan(*, user_message: str, skills_readme: str, skill_names: list[str], skill_groups: list[str]) -> dict:
         return {"action": "chat", "skill_group": None, "skill_name": None, "intent": "greeting", "steps": []}
 
     def fake_workflow_chat(*, user_message: str, skills_readme: str, custom_skill_md: str) -> str:
@@ -81,7 +81,7 @@ def test_agent_v2_chat_does_not_execute(monkeypatch):
 
 
 def test_agent_v2_unknown_skill_name_does_not_crash(monkeypatch):
-    def fake_workflow_plan(*, user_message: str, skills_readme: str, skill_names: list[str]) -> dict:
+    def fake_workflow_plan(*, user_message: str, skills_readme: str, skill_names: list[str], skill_groups: list[str]) -> dict:
         return {
             "action": "execute_skill",
             "skill_group": "HR-scopes",

@@ -1,6 +1,17 @@
+Metadata-Version: 2.4
+Name: mcp-skill-code-exec
+Version: 0.1.0
+Summary: MCP Skill Code Executor Agent
+Requires-Python: >=3.11
+Description-Content-Type: text/markdown
+Requires-Dist: baml-py
+Requires-Dist: chainlit==2.9.5
+Requires-Dist: python-dotenv==1.0.1
+Requires-Dist: pytest==8.3.4
+
 # mcp-skill-code_exec
 
-Skill-driven workflow automation agent that:
+Skill-driven HR automation agent that:
 - selects a scripted workflow when it matches a known skill
 - otherwise generates a custom Python script using the available MCP tools
 - executes the script and summarizes outputs

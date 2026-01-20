@@ -527,7 +527,7 @@ def _build_request_to_scenario() -> dict[str, Scenario]:
 def test_hr_scopes_scenarios_pass_heuristic_qualitative_evaluation(monkeypatch, scenario: Scenario, user_request: str):
     request_to_scenario = _build_request_to_scenario()
 
-    def fake_workflow_plan(*, user_message: str, skills_readme: str, skill_names: list[str]) -> dict:
+    def fake_workflow_plan(*, user_message: str, skills_readme: str, skill_names: list[str], skill_groups: list[str]) -> dict:
         s = request_to_scenario[user_message]
         if s.expected_action == "custom_script":
             return {

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import re
 from dataclasses import dataclass
 from pathlib import Path
@@ -22,7 +23,7 @@ class Plan:
 
 
 class WorkflowAgent:
-    def __init__(self, max_attempts: int = 3):
+    def __init__(self, max_attempts: int = 3, *, enable_workflow_plan_review: bool | None = None):
         self.max_attempts = max(1, int(max_attempts))
         self.workspace_dir = Path(__file__).resolve().parents[1]
         self.skills_v2_dir = self.workspace_dir / "skills_v2"
@@ -32,6 +33,9 @@ class WorkflowAgent:
         self.default_docs_dir = self.skills_v2_dir / "HR-scopes" / "tools" / "mcp_docs"
         self.executor = PythonCodeExecutor(self.workspace_dir, extra_pythonpaths=[self.default_tools_root])
         self.custom_skill_md_path = self.skills_v2_dir / "custom_skill.md"
+        if enable_workflow_plan_review is None:
+            enable_workflow_plan_review = _env_bool("enable_workflow_plan_review", default=False)
+        self.enable_workflow_plan_review = bool(enable_workflow_plan_review)
 
     async def run(self, user_message: str) -> AgentResult:
         plan, plan_json, selected_skill = self.plan(user_message=user_message)
@@ -65,10 +69,12 @@ class WorkflowAgent:
     def plan(self, user_message: str):
         skills_readme = self.skills.read_skills_readme()
         skills = self.skills.list_skills()
+        skill_groups = self.skills.list_skill_groups()
         plan_data = workflow_plan(
             user_message=user_message,
             skills_readme=skills_readme,
             skill_names=[s.name for s in skills],
+            skill_groups=skill_groups,
         )
         plan = _plan_from_dict(plan_data, skills)
         selected_skill = None
@@ -96,7 +102,7 @@ class WorkflowAgent:
             ensure_ascii=False,
         )
 
-        if selected_skill is not None:
+        if selected_skill is not None and self.enable_workflow_plan_review:
             reviewed_plan_data = workflow_plan_review(
                 user_message=user_message,
                 proposed_plan_json=proposed_plan_json,
@@ -285,8 +291,8 @@ def _plan_from_dict(data: dict, skills) -> Plan:
 
     intent = str(data.get("intent", ""))
     steps = [str(s) for s in (data.get("steps") or [])]
-    skill_group = data.get("skill_group") if action == "execute_skill" else None
-    if action == "execute_skill":
+    skill_group = data.get("skill_group") if action in {"execute_skill", "custom_script"} else None
+    if action in {"execute_skill", "custom_script"}:
         if not isinstance(skill_group, str) or not skill_group.strip():
             skill_group = None
         else:
@@ -352,3 +358,17 @@ def _extract_code_block(text: str) -> str:
     if code.lstrip().startswith(("python\n", "py\n")):
         code = code.split("\n", 1)[1]
     return code.strip()
+
+
+def _env_bool(name: str, *, default: bool = False) -> bool:
+    value = os.getenv(name)
+    if value is None:
+        return default
+    cleaned = value.strip().lower()
+    if not cleaned:
+        return default
+    if cleaned in {"1", "true", "yes", "y", "on"}:
+        return True
+    if cleaned in {"0", "false", "no", "n", "off"}:
+        return False
+    return default

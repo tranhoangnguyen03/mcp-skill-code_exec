@@ -15,6 +15,16 @@ class SkillRegistry:
     def __init__(self, skills_dir: Path):
         self.skills_dir = skills_dir
 
+    def list_skill_groups(self) -> list[str]:
+        if not self.skills_dir.exists():
+            return []
+        groups: list[str] = []
+        for p in sorted([x for x in self.skills_dir.iterdir() if x.is_dir()]):
+            if not p.name.endswith("-scopes"):
+                continue
+            groups.append(p.name)
+        return groups
+
     def list_skills(self) -> list[Skill]:
         skills: list[Skill] = []
         if not self.skills_dir.exists():

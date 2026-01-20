@@ -5,7 +5,7 @@ from agent_workspace.workflow_agent.agent import WorkflowAgent
 
 
 def _run_skill(*, monkeypatch, skill_name: str, user_message: str, code: str):
-    def fake_workflow_plan(*, user_message: str, skills_readme: str, skill_names: list[str]) -> dict:
+    def fake_workflow_plan(*, user_message: str, skills_readme: str, skill_names: list[str], skill_groups: list[str]) -> dict:
         return {
             "action": "execute_skill",
             "skill_group": "HR-scopes",

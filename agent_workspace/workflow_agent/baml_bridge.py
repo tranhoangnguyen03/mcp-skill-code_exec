@@ -1,10 +1,15 @@
 from __future__ import annotations
 
 
-def workflow_plan(*, user_message: str, skills_readme: str, skill_names: list[str]) -> dict:
+def workflow_plan(*, user_message: str, skills_readme: str, skill_names: list[str], skill_groups: list[str]) -> dict:
     from baml_client.sync_client import b
 
-    plan = b.WorkflowPlan(user_message=user_message, skills_readme=skills_readme, skill_names=skill_names)
+    plan = b.WorkflowPlan(
+        user_message=user_message,
+        skills_readme=skills_readme,
+        skill_names=skill_names,
+        skill_groups=skill_groups,
+    )
 
     action = getattr(plan.action, "value", plan.action)
     action_map = {

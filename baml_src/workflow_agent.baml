@@ -12,7 +12,7 @@ class Plan {
   steps string[]
 }
 
-function WorkflowPlan(user_message: string, skills_readme: string, skill_names: string[]) -> Plan {
+function WorkflowPlan(user_message: string, skills_readme: string, skill_names: string[], skill_groups: string[]) -> Plan {
   client OpenRouterChat
   prompt #"
 You are a workflow planner for a skill-based automation agent.
@@ -34,7 +34,7 @@ When in doubt between execute_skill and custom_script, choose custom_script to m
 
 When action is execute_skill:
 - skill_name must be one of the provided skill names
-- set skill_group if the scope is clear, otherwise leave it null
+- set skill_group to the scope that contains the chosen skill, when possible
 - steps should be concise, high-level, and executable
 
 When action is chat:
@@ -43,7 +43,7 @@ When action is chat:
 
 When action is custom_script:
 - skill_name may be null or a short label
-- skill_group may be null
+- skill_group should be one of the provided skill groups when the scope is clear (prefer setting it)
 - steps should be concise, high-level, and executable
 
 User message:
@@ -55,6 +55,11 @@ Supported skills:
 Skill names:
 {% for s in skill_names %}
 - {{ s }}
+{% endfor %}
+
+Skill groups:
+{% for g in skill_groups %}
+- {{ g }}
 {% endfor %}
 
 {{ ctx.output_format }}

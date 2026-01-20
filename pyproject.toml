@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mcp-skill-code-exec"
+version = "0.1.0"
+description = "MCP Skill Code Executor Agent"
+readme = "Readme.md"
+requires-python = ">=3.11"
+dependencies = [
+    "baml-py",
+    "chainlit==2.9.5",
+    "python-dotenv==1.0.1",
+    "pytest==8.3.4"
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["agent_workspace*", "baml_client*"]

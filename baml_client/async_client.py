@@ -112,19 +112,19 @@ class BamlAsyncClient:
                 "user_message": user_message,"plan_json": plan_json,"skill_md": skill_md,"tool_contracts": tool_contracts,"attempt": attempt,"previous_error": previous_error,"previous_code": previous_code,
             })
             return typing.cast(str, __result__.cast_to(types, types, stream_types, False, __runtime__))
-    async def WorkflowPlan(self, user_message: str,skills_readme: str,skill_names: typing.List[str],
+    async def WorkflowPlan(self, user_message: str,skills_readme: str,skill_names: typing.List[str],skill_groups: typing.List[str],
         baml_options: BamlCallOptions = {},
     ) -> types.Plan:
         # Check if on_tick is provided
         if 'on_tick' in baml_options:
             # Use streaming internally when on_tick is provided
-            __stream__ = self.stream.WorkflowPlan(user_message=user_message,skills_readme=skills_readme,skill_names=skill_names,
+            __stream__ = self.stream.WorkflowPlan(user_message=user_message,skills_readme=skills_readme,skill_names=skill_names,skill_groups=skill_groups,
                 baml_options=baml_options)
             return await __stream__.get_final_response()
         else:
             # Original non-streaming code
             __result__ = await self.__options.merge_options(baml_options).call_function_async(function_name="WorkflowPlan", args={
-                "user_message": user_message,"skills_readme": skills_readme,"skill_names": skill_names,
+                "user_message": user_message,"skills_readme": skills_readme,"skill_names": skill_names,"skill_groups": skill_groups,
             })
             return typing.cast(types.Plan, __result__.cast_to(types, types, stream_types, False, __runtime__))
     async def WorkflowPlanReview(self, user_message: str,proposed_plan_json: str,selected_skill_md: str,
@@ -190,11 +190,11 @@ class BamlStreamClient:
           lambda x: typing.cast(str, x.cast_to(types, types, stream_types, False, __runtime__)),
           __ctx__,
         )
-    def WorkflowPlan(self, user_message: str,skills_readme: str,skill_names: typing.List[str],
+    def WorkflowPlan(self, user_message: str,skills_readme: str,skill_names: typing.List[str],skill_groups: typing.List[str],
         baml_options: BamlCallOptions = {},
     ) -> baml_py.BamlStream[stream_types.Plan, types.Plan]:
         __ctx__, __result__ = self.__options.merge_options(baml_options).create_async_stream(function_name="WorkflowPlan", args={
-            "user_message": user_message,"skills_readme": skills_readme,"skill_names": skill_names,
+            "user_message": user_message,"skills_readme": skills_readme,"skill_names": skill_names,"skill_groups": skill_groups,
         })
         return baml_py.BamlStream[stream_types.Plan, types.Plan](
           __result__,
@@ -248,11 +248,11 @@ class BamlHttpRequestClient:
             "user_message": user_message,"plan_json": plan_json,"skill_md": skill_md,"tool_contracts": tool_contracts,"attempt": attempt,"previous_error": previous_error,"previous_code": previous_code,
         }, mode="request")
         return __result__
-    async def WorkflowPlan(self, user_message: str,skills_readme: str,skill_names: typing.List[str],
+    async def WorkflowPlan(self, user_message: str,skills_readme: str,skill_names: typing.List[str],skill_groups: typing.List[str],
         baml_options: BamlCallOptions = {},
     ) -> baml_py.baml_py.HTTPRequest:
         __result__ = await self.__options.merge_options(baml_options).create_http_request_async(function_name="WorkflowPlan", args={
-            "user_message": user_message,"skills_readme": skills_readme,"skill_names": skill_names,
+            "user_message": user_message,"skills_readme": skills_readme,"skill_names": skill_names,"skill_groups": skill_groups,
         }, mode="request")
         return __result__
     async def WorkflowPlanReview(self, user_message: str,proposed_plan_json: str,selected_skill_md: str,
@@ -291,11 +291,11 @@ class BamlHttpStreamRequestClient:
             "user_message": user_message,"plan_json": plan_json,"skill_md": skill_md,"tool_contracts": tool_contracts,"attempt": attempt,"previous_error": previous_error,"previous_code": previous_code,
         }, mode="stream")
         return __result__
-    async def WorkflowPlan(self, user_message: str,skills_readme: str,skill_names: typing.List[str],
+    async def WorkflowPlan(self, user_message: str,skills_readme: str,skill_names: typing.List[str],skill_groups: typing.List[str],
         baml_options: BamlCallOptions = {},
     ) -> baml_py.baml_py.HTTPRequest:
         __result__ = await self.__options.merge_options(baml_options).create_http_request_async(function_name="WorkflowPlan", args={
-            "user_message": user_message,"skills_readme": skills_readme,"skill_names": skill_names,
+            "user_message": user_message,"skills_readme": skills_readme,"skill_names": skill_names,"skill_groups": skill_groups,
         }, mode="stream")
         return __result__
     async def WorkflowPlanReview(self, user_message: str,proposed_plan_json: str,selected_skill_md: str,
