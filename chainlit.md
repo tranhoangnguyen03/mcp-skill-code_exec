@@ -26,6 +26,8 @@ The agent distinguishes between **working steps** and **response steps**:
 
 Conversation history is stored in YAML files under `agent_workspace/memory/sessions/`:
 
+For each new user message, the UI also injects a compact transcript of the last N past messages into all LLM steps (plan, codegen, chat, respond). Configure N via `agent_memory_max_messages` (default: 10).
+
 ```yaml
 # messages[] stores conversation turns
 messages:

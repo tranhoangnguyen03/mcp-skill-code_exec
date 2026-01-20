@@ -56,6 +56,7 @@ mem.add_facts(facts)
 
 # Get formatted context for prompts
 context = mem.get_context_summary(max_messages=10)
+conversation_history = mem.get_conversation_history(max_messages=10)
 
 # Retrieve data
 messages = mem.get_messages()      # list[Message]
@@ -81,6 +82,7 @@ mem.clear()
 | `get_working_steps()` | Return all working step artifacts |
 | `get_facts()` | Return all key facts |
 | `get_context_summary(max_messages=10)` | Format for prompt injection |
+| `get_conversation_history(max_messages=10)` | Compact transcript for LLM injection |
 | `clear()` | Delete session and file |
 
 ### StepType Enum
@@ -193,6 +195,7 @@ memory/
 ## Chainlit Integration
 
 Each new conversation in Chainlit creates a new session. Use the **New Conversation** button to start fresh with a new session ID.
+In the UI, the number of injected past messages is configurable via `agent_memory_max_messages` (default: 10).
 
 ```python
 # In chainlit_app_v2.py
@@ -206,6 +209,8 @@ async def on_chat_start():
 @cl.on_message
 async def on_message(message: cl.Message):
     memory = cl.user_session.get("memory")
+
+    conversation_history = memory.get_conversation_history(max_messages=10)
 
     # Store user message (single write)
     memory.add_response("user", message.content)

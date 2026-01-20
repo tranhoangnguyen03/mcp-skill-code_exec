@@ -5,7 +5,9 @@ from agent_workspace.workflow_agent.agent import WorkflowAgent
 
 
 def _run_skill(*, monkeypatch, skill_name: str, user_message: str, code: str):
-    def fake_workflow_plan(*, user_message: str, skills_readme: str, skill_names: list[str], skill_groups: list[str]) -> dict:
+    def fake_workflow_plan(
+        *, user_message: str, skills_readme: str, skill_names: list[str], skill_groups: list[str], conversation_history: str
+    ) -> dict:
         return {
             "action": "execute_skill",
             "skill_group": "HR-scopes",
@@ -23,6 +25,7 @@ def _run_skill(*, monkeypatch, skill_name: str, user_message: str, code: str):
         attempt: int,
         previous_error: str,
         previous_code: str,
+        conversation_history: str,
     ) -> str:
         return "```python\n" + code.strip() + "\n```"
 
@@ -35,10 +38,13 @@ def _run_skill(*, monkeypatch, skill_name: str, user_message: str, code: str):
         exec_stderr: str,
         exit_code: int,
         attempts: int,
+        conversation_history: str,
     ) -> str:
         return f"Ran {skill_name}."
 
-    def fake_workflow_plan_review(*, user_message: str, proposed_plan_json: str, selected_skill_md: str) -> dict:
+    def fake_workflow_plan_review(
+        *, user_message: str, proposed_plan_json: str, selected_skill_md: str, conversation_history: str
+    ) -> dict:
         return json.loads(proposed_plan_json)
 
     monkeypatch.setattr(agent_module, "workflow_plan", fake_workflow_plan)

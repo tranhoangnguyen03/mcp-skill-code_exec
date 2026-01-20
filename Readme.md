@@ -97,6 +97,8 @@ The UI shows the generated plan first and pauses for human approval before code 
 
 File-based conversation memory for multi-turn context. Stores conversation turns (`messages[]`) and working step artifacts (`steps[]`). See [memory/Readme.md](agent_workspace/memory/Readme.md).
 
+In the Chainlit UI, the agent automatically injects the last N past conversation turns into all LLM steps (plan, codegen, chat, respond). Configure N via `agent_memory_max_messages` (default: 10).
+
 ```python
 from agent_workspace.memory import SessionMemory, StepType, StepCategory, extract_facts_simple
 
@@ -117,6 +119,7 @@ mem.add_working_step(
 mem.add_facts(extract_facts_simple(user_msg, assistant_msg))
 
 context = mem.get_context_summary()  # For prompt injection
+conversation_history = mem.get_conversation_history()  # Compact transcript injection
 working_steps = mem.get_working_steps()  # Get plan/code/execution history
 ```
 

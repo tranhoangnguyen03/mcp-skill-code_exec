@@ -81,13 +81,21 @@ async def on_message(message: cl.Message):
     memory: SessionMemory = cl.user_session.get("memory")
     user_input = message.content
 
+    try:
+        max_history_messages = int(os.getenv("agent_memory_max_messages", "10") or "10")
+    except Exception:
+        max_history_messages = 10
+    conversation_history = memory.get_conversation_history(max_messages=max_history_messages)
+
     # Store user message in memory (single write path - no duplication)
     memory.add_response("user", user_input)
 
     # 1. Planning phase with HITL gate
     while True:
         async with cl.Step(name="Plan") as step:
-            plan, plan_json, skill = await asyncio.to_thread(agent.plan, user_message=user_input)
+            plan, plan_json, skill = await asyncio.to_thread(
+                agent.plan, user_message=user_input, conversation_history=conversation_history
+            )
             step.output = "```json\n" + plan_json.strip() + "\n```"
 
         # Persist plan as working step
@@ -100,7 +108,7 @@ async def on_message(message: cl.Message):
 
         if plan.action == "chat":
             async with cl.Step(name="Respond") as step:
-                final = await asyncio.to_thread(agent.chat, user_message=user_input)
+                final = await asyncio.to_thread(agent.chat, user_message=user_input, conversation_history=conversation_history)
                 step.output = final
             # Store assistant response in memory (single write)
             memory.add_response("assistant", final)
@@ -158,6 +166,7 @@ async def on_message(message: cl.Message):
                     user_message=user_input,
                     plan_json=plan_json,
                     skill_md=skill_md,
+                    conversation_history=conversation_history,
                     attempt=attempt,
                     previous_error=last_error,
                     previous_code=last_code,
@@ -209,6 +218,7 @@ async def on_message(message: cl.Message):
             executed_code=last_code,
             exec_result=exec_result,
             attempts=attempts_used,
+            conversation_history=conversation_history,
         )
         step.output = final
 

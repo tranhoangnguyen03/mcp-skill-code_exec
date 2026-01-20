@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 
-def workflow_plan(*, user_message: str, skills_readme: str, skill_names: list[str], skill_groups: list[str]) -> dict:
+def workflow_plan(
+    *, user_message: str, skills_readme: str, skill_names: list[str], skill_groups: list[str], conversation_history: str
+) -> dict:
     from baml_client.sync_client import b
 
     plan = b.WorkflowPlan(
@@ -9,6 +11,7 @@ def workflow_plan(*, user_message: str, skills_readme: str, skill_names: list[st
         skills_readme=skills_readme,
         skill_names=skill_names,
         skill_groups=skill_groups,
+        conversation_history=conversation_history,
     )
 
     action = getattr(plan.action, "value", plan.action)
@@ -31,13 +34,14 @@ def workflow_plan(*, user_message: str, skills_readme: str, skill_names: list[st
     }
 
 
-def workflow_plan_review(*, user_message: str, proposed_plan_json: str, selected_skill_md: str) -> dict:
+def workflow_plan_review(*, user_message: str, proposed_plan_json: str, selected_skill_md: str, conversation_history: str) -> dict:
     from baml_client.sync_client import b
 
     plan = b.WorkflowPlanReview(
         user_message=user_message,
         proposed_plan_json=proposed_plan_json,
         selected_skill_md=selected_skill_md,
+        conversation_history=conversation_history,
     )
 
     action = getattr(plan.action, "value", plan.action)
@@ -69,6 +73,7 @@ def workflow_codegen(
     attempt: int,
     previous_error: str,
     previous_code: str,
+    conversation_history: str,
 ) -> str:
     from baml_client.sync_client import b
 
@@ -80,13 +85,19 @@ def workflow_codegen(
         attempt=attempt,
         previous_error=previous_error,
         previous_code=previous_code,
+        conversation_history=conversation_history,
     )
 
 
-def workflow_chat(*, user_message: str, skills_readme: str, custom_skill_md: str) -> str:
+def workflow_chat(*, user_message: str, skills_readme: str, custom_skill_md: str, conversation_history: str) -> str:
     from baml_client.sync_client import b
 
-    result = b.WorkflowChat(user_message=user_message, skills_readme=skills_readme, custom_skill_md=custom_skill_md)
+    result = b.WorkflowChat(
+        user_message=user_message,
+        skills_readme=skills_readme,
+        custom_skill_md=custom_skill_md,
+        conversation_history=conversation_history,
+    )
     return result.final_response
 
 
@@ -99,6 +110,7 @@ def workflow_respond(
     exec_stderr: str,
     exit_code: int,
     attempts: int,
+    conversation_history: str,
 ) -> str:
     from baml_client.sync_client import b
 
@@ -110,4 +122,5 @@ def workflow_respond(
         exec_stderr=exec_stderr,
         exit_code=exit_code,
         attempts=attempts,
+        conversation_history=conversation_history,
     )

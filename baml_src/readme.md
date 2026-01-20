@@ -33,11 +33,13 @@ The agent uses 5 main BAML functions (defined in `workflow_agent.baml`):
 
 | Function | Input | Output | When Used |
 |----------|-------|--------|-----------|
-| `WorkflowPlan` | user_message, skills_readme, skill_names, skill_groups | `Plan` (action, intent, steps) | First step: classify request as chat/skill/custom |
-| `WorkflowPlanReview` | user_message, proposed_plan, skill_md | `Plan` (reviewed) | HITL: review user feedback on plan |
-| `WorkflowCodegen` | user_message, plan_json, skill_md, tool_contracts, attempt | Python code string | Execute: generate script to run |
-| `WorkflowChat` | user_message, skills_readme, custom_skill_md | string | When action="chat": conversational response |
-| `WorkflowRespond` | user_message, plan_json, exec_stdout, exit_code, attempts | string | After execution: summarize results |
+| `WorkflowPlan` | user_message, skills_readme, skill_names, skill_groups, conversation_history | `Plan` (action, intent, steps) | First step: classify request as chat/skill/custom |
+| `WorkflowPlanReview` | user_message, proposed_plan, skill_md, conversation_history | `Plan` (reviewed) | HITL: review user feedback on plan |
+| `WorkflowCodegen` | user_message, plan_json, skill_md, tool_contracts, attempt, previous_error, previous_code, conversation_history | Python code string | Execute: generate script to run |
+| `WorkflowChat` | user_message, skills_readme, custom_skill_md, conversation_history | string | When action="chat": conversational response |
+| `WorkflowRespond` | user_message, plan_json, exec_stdout, exit_code, attempts, conversation_history | string | After execution: summarize results |
+
+`conversation_history` is a compact plain-text transcript of the last N past messages (most recent last).
 
 ## The Plan Schema
 
@@ -45,7 +47,7 @@ All planning functions return a `Plan` object:
 
 ```baml
 class Plan {
-  action PlanAction       // Chat | ExecuteSkill | CustomScript
+  action string           // "chat" | "execute_skill" | "custom_script"
   skill_group string?     // HR-scopes, Recruitment-scopes, etc.
   skill_name string?      // Specific skill (e.g., "onboard_new_hire")
   intent string           // Human-readable description

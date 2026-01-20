@@ -5,7 +5,9 @@ from agent_workspace.workflow_agent.agent import WorkflowAgent
 
 
 def test_agent_uses_scope_specific_tool_docs_for_codegen(monkeypatch):
-    def fake_workflow_plan(*, user_message: str, skills_readme: str, skill_names: list[str], skill_groups: list[str]) -> dict:
+    def fake_workflow_plan(
+        *, user_message: str, skills_readme: str, skill_names: list[str], skill_groups: list[str], conversation_history: str
+    ) -> dict:
         return {
             "action": "execute_skill",
             "skill_group": "Recruitment-scopes",
@@ -23,6 +25,7 @@ def test_agent_uses_scope_specific_tool_docs_for_codegen(monkeypatch):
         attempt: int,
         previous_error: str,
         previous_code: str,
+        conversation_history: str,
     ) -> str:
         assert "Ticketing for recruiting coordination and follow-ups." in tool_contracts
         assert "# bamboo_hr" not in tool_contracts
@@ -39,10 +42,13 @@ print("noop")
         exec_stderr: str,
         exit_code: int,
         attempts: int,
+        conversation_history: str,
     ) -> str:
         return "Done."
 
-    def fake_workflow_plan_review(*, user_message: str, proposed_plan_json: str, selected_skill_md: str) -> dict:
+    def fake_workflow_plan_review(
+        *, user_message: str, proposed_plan_json: str, selected_skill_md: str, conversation_history: str
+    ) -> dict:
         return json.loads(proposed_plan_json)
 
     monkeypatch.setattr(agent_module, "workflow_plan", fake_workflow_plan)
@@ -56,7 +62,9 @@ print("noop")
 
 
 def test_agent_scopes_tool_docs_for_custom_script(monkeypatch):
-    def fake_workflow_plan(*, user_message: str, skills_readme: str, skill_names: list[str], skill_groups: list[str]) -> dict:
+    def fake_workflow_plan(
+        *, user_message: str, skills_readme: str, skill_names: list[str], skill_groups: list[str], conversation_history: str
+    ) -> dict:
         assert "Recruitment-scopes" in set(skill_groups)
         return {
             "action": "custom_script",
@@ -75,6 +83,7 @@ def test_agent_scopes_tool_docs_for_custom_script(monkeypatch):
         attempt: int,
         previous_error: str,
         previous_code: str,
+        conversation_history: str,
     ) -> str:
         assert "Ticketing for recruiting coordination and follow-ups." in tool_contracts
         assert "# bamboo_hr" not in tool_contracts
@@ -91,6 +100,7 @@ print("noop")
         exec_stderr: str,
         exit_code: int,
         attempts: int,
+        conversation_history: str,
     ) -> str:
         return "Done."
 

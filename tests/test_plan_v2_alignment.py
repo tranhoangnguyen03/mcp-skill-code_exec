@@ -7,7 +7,9 @@ from agent_workspace.workflow_agent.agent import WorkflowAgent
 def test_plan_v2_contains_skill_group_and_logic_flow_steps(monkeypatch):
     monkeypatch.delenv("enable_workflow_plan_review", raising=False)
 
-    def fake_workflow_plan(*, user_message: str, skills_readme: str, skill_names: list[str], skill_groups: list[str]) -> dict:
+    def fake_workflow_plan(
+        *, user_message: str, skills_readme: str, skill_names: list[str], skill_groups: list[str], conversation_history: str
+    ) -> dict:
         return {
             "action": "execute_skill",
             "skill_group": "HR-scopes",
@@ -16,7 +18,9 @@ def test_plan_v2_contains_skill_group_and_logic_flow_steps(monkeypatch):
             "steps": ["placeholder step"],
         }
 
-    def fake_workflow_plan_review(*, user_message: str, proposed_plan_json: str, selected_skill_md: str) -> dict:
+    def fake_workflow_plan_review(
+        *, user_message: str, proposed_plan_json: str, selected_skill_md: str, conversation_history: str
+    ) -> dict:
         return json.loads(proposed_plan_json)
 
     monkeypatch.setattr(agent_module, "workflow_plan", fake_workflow_plan)
@@ -43,7 +47,9 @@ def test_plan_v2_contains_skill_group_and_logic_flow_steps(monkeypatch):
 def test_workflow_plan_review_disabled_by_default(monkeypatch):
     monkeypatch.delenv("enable_workflow_plan_review", raising=False)
 
-    def fake_workflow_plan(*, user_message: str, skills_readme: str, skill_names: list[str], skill_groups: list[str]) -> dict:
+    def fake_workflow_plan(
+        *, user_message: str, skills_readme: str, skill_names: list[str], skill_groups: list[str], conversation_history: str
+    ) -> dict:
         return {
             "action": "execute_skill",
             "skill_group": "HR-scopes",
@@ -52,7 +58,9 @@ def test_workflow_plan_review_disabled_by_default(monkeypatch):
             "steps": ["placeholder step"],
         }
 
-    def fake_workflow_plan_review(*, user_message: str, proposed_plan_json: str, selected_skill_md: str) -> dict:
+    def fake_workflow_plan_review(
+        *, user_message: str, proposed_plan_json: str, selected_skill_md: str, conversation_history: str
+    ) -> dict:
         raise AssertionError("workflow_plan_review should be disabled by default")
 
     monkeypatch.setattr(agent_module, "workflow_plan", fake_workflow_plan)
@@ -70,7 +78,9 @@ def test_workflow_plan_review_disabled_by_default(monkeypatch):
 def test_workflow_plan_review_enabled_via_env(monkeypatch):
     monkeypatch.setenv("enable_workflow_plan_review", "true")
 
-    def fake_workflow_plan(*, user_message: str, skills_readme: str, skill_names: list[str], skill_groups: list[str]) -> dict:
+    def fake_workflow_plan(
+        *, user_message: str, skills_readme: str, skill_names: list[str], skill_groups: list[str], conversation_history: str
+    ) -> dict:
         return {
             "action": "execute_skill",
             "skill_group": "HR-scopes",
@@ -79,7 +89,9 @@ def test_workflow_plan_review_enabled_via_env(monkeypatch):
             "steps": ["placeholder step"],
         }
 
-    def fake_workflow_plan_review(*, user_message: str, proposed_plan_json: str, selected_skill_md: str) -> dict:
+    def fake_workflow_plan_review(
+        *, user_message: str, proposed_plan_json: str, selected_skill_md: str, conversation_history: str
+    ) -> dict:
         return {
             "action": "custom_script",
             "skill_group": None,

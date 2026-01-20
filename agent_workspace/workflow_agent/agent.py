@@ -37,10 +37,10 @@ class WorkflowAgent:
             enable_workflow_plan_review = _env_bool("enable_workflow_plan_review", default=False)
         self.enable_workflow_plan_review = bool(enable_workflow_plan_review)
 
-    async def run(self, user_message: str) -> AgentResult:
-        plan, plan_json, selected_skill = self.plan(user_message=user_message)
+    async def run(self, user_message: str, *, conversation_history: str = "") -> AgentResult:
+        plan, plan_json, selected_skill = self.plan(user_message=user_message, conversation_history=conversation_history)
         if plan.action == "chat":
-            final_response = self.chat(user_message=user_message)
+            final_response = self.chat(user_message=user_message, conversation_history=conversation_history)
             return AgentResult(final_response=final_response.strip(), plan_json=plan_json)
 
         skill_md = self.get_skill_md(plan=plan, selected_skill=selected_skill)
@@ -48,6 +48,7 @@ class WorkflowAgent:
             user_message=user_message,
             plan_json=plan_json,
             skill_md=skill_md,
+            conversation_history=conversation_history,
         )
         final_response = self.respond(
             user_message=user_message,
@@ -55,6 +56,7 @@ class WorkflowAgent:
             executed_code=code,
             exec_result=exec_result,
             attempts=attempts_used,
+            conversation_history=conversation_history,
         )
 
         return AgentResult(
@@ -66,7 +68,7 @@ class WorkflowAgent:
             attempts=attempts_used,
         )
 
-    def plan(self, user_message: str):
+    def plan(self, user_message: str, *, conversation_history: str = ""):
         skills_readme = self.skills.read_skills_readme()
         skills = self.skills.list_skills()
         skill_groups = self.skills.list_skill_groups()
@@ -75,6 +77,7 @@ class WorkflowAgent:
             skills_readme=skills_readme,
             skill_names=[s.name for s in skills],
             skill_groups=skill_groups,
+            conversation_history=conversation_history,
         )
         plan = _plan_from_dict(plan_data, skills)
         selected_skill = None
@@ -107,6 +110,7 @@ class WorkflowAgent:
                 user_message=user_message,
                 proposed_plan_json=proposed_plan_json,
                 selected_skill_md=selected_skill.content,
+                conversation_history=conversation_history,
             )
             reviewed_plan = _plan_from_dict(reviewed_plan_data, skills)
             if reviewed_plan.action != "execute_skill":
@@ -148,6 +152,7 @@ class WorkflowAgent:
         plan_json: str,
         skill_md: str,
         *,
+        conversation_history: str = "",
         attempt: int = 1,
         previous_error: str = "",
         previous_code: str = "",
@@ -161,6 +166,7 @@ class WorkflowAgent:
             attempt=attempt,
             previous_error=previous_error,
             previous_code=previous_code,
+            conversation_history=conversation_history,
         )
         extracted = _extract_code_block(code)
         compile(extracted, "<generated>", "exec")
@@ -178,6 +184,7 @@ class WorkflowAgent:
         executed_code: str,
         exec_result: ExecutionResult,
         *,
+        conversation_history: str = "",
         attempts: int,
     ) -> str:
         return workflow_respond(
@@ -188,19 +195,27 @@ class WorkflowAgent:
             exec_stderr=exec_result.stderr,
             exit_code=exec_result.exit_code,
             attempts=attempts,
+            conversation_history=conversation_history,
         )
 
-    def chat(self, user_message: str) -> str:
+    def chat(self, user_message: str, *, conversation_history: str = "") -> str:
         skills_readme = self.skills.read_skills_readme()
         custom_skill_md = self.custom_skill_md_path.read_text(encoding="utf-8")
-        return workflow_chat(user_message=user_message, skills_readme=skills_readme, custom_skill_md=custom_skill_md)
+        return workflow_chat(
+            user_message=user_message,
+            skills_readme=skills_readme,
+            custom_skill_md=custom_skill_md,
+            conversation_history=conversation_history,
+        )
 
     def get_skill_md(self, plan: Plan, selected_skill) -> str:
         if plan.action == "execute_skill":
             return selected_skill.content
         return self.custom_skill_md_path.read_text(encoding="utf-8")
 
-    def generate_and_execute_with_retries(self, user_message: str, plan_json: str, skill_md: str):
+    def generate_and_execute_with_retries(
+        self, user_message: str, plan_json: str, skill_md: str, *, conversation_history: str = ""
+    ):
         last_code = ""
         last_error = ""
         last_exec = ExecutionResult(stdout="", stderr="", exit_code=1)
@@ -216,6 +231,7 @@ class WorkflowAgent:
                     attempt=attempt,
                     previous_error=last_error,
                     previous_code=last_code,
+                    conversation_history=conversation_history,
                 )
             except Exception as e:
                 last_code = last_code or ""

@@ -6,7 +6,7 @@ class Plan {
   steps string[]
 }
 
-function WorkflowPlan(user_message: string, skills_readme: string, skill_names: string[], skill_groups: string[]) -> Plan {
+function WorkflowPlan(user_message: string, skills_readme: string, skill_names: string[], skill_groups: string[], conversation_history: string) -> Plan {
   client OpenRouterChat
   prompt #"
 You are a workflow planner for a skill-based automation agent.
@@ -40,6 +40,9 @@ When action is custom_script:
 - skill_group should be one of the provided skill groups when the scope is clear (prefer setting it)
 - steps should be concise, high-level, and executable
 
+Conversation history (most recent last):
+{{ conversation_history }}
+
 User message:
 {{ user_message }}
 
@@ -60,7 +63,7 @@ Skill groups:
 "#
 }
 
-function WorkflowPlanReview(user_message: string, proposed_plan_json: string, selected_skill_md: string) -> Plan {
+function WorkflowPlanReview(user_message: string, proposed_plan_json: string, selected_skill_md: string, conversation_history: string) -> Plan {
   client OpenRouterChat
   prompt #"
 You are a careful plan reviewer for a workflow automation agent.
@@ -77,6 +80,9 @@ Rules:
 - If the proposed plan selects a skill whose core actions (per the skill manual) are not explicitly required by the user request, change the action to custom_script.
 - If you change to custom_script, keep the steps minimal and aligned to the user request.
 - Keep chat only for purely conversational requests with no tool actions.
+
+Conversation history (most recent last):
+{{ conversation_history }}
 
 User request:
 {{ user_message }}
@@ -98,7 +104,8 @@ function WorkflowCodegen(
   tool_contracts: string,
   attempt: int,
   previous_error: string,
-  previous_code: string
+  previous_code: string,
+  conversation_history: string
 ) -> string {
   client OpenRouterChat
   prompt #"
@@ -109,6 +116,9 @@ Write a complete, runnable Python script that fulfills the user request by stric
 - Plan JSON: {{ plan_json }}
 - Skill manual (SKILL.md): {{ skill_md }}
 - Tool contracts: {{ tool_contracts }}
+
+Conversation history (most recent last):
+{{ conversation_history }}
 
 ### Implementation Rules:
 1. STRICT ADHERENCE: Follow the steps in the Plan JSON exactly. Do not add steps or skip steps.
@@ -136,13 +146,16 @@ class ChatResponse {
   final_response string
 }
 
-function WorkflowChat(user_message: string, skills_readme: string, custom_skill_md: string) -> ChatResponse {
+function WorkflowChat(user_message: string, skills_readme: string, custom_skill_md: string, conversation_history: string) -> ChatResponse {
   client OpenRouterChat
   prompt #"
     You are a helpful chat assistant for a workflow automation agent.
 
     Goal: Respond to the user's message.
     
+    Conversation history (most recent last):
+    {{ conversation_history }}
+
     Context:
     Supported capabilities:
     {{ skills_readme }}
@@ -169,11 +182,15 @@ function WorkflowRespond(
   exec_stdout: string,
   exec_stderr: string,
   exit_code: int,
-  attempts: int
+  attempts: int,
+  conversation_history: string
 ) -> string {
   client OpenRouterChat
   prompt #"
 You are the assistant voice for a workflow automation agent.
+
+Conversation history (most recent last):
+{{ conversation_history }}
 
 User request:
 {{ user_message }}

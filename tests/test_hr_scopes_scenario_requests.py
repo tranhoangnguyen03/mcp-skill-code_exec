@@ -527,7 +527,9 @@ def _build_request_to_scenario() -> dict[str, Scenario]:
 def test_hr_scopes_scenarios_pass_heuristic_qualitative_evaluation(monkeypatch, scenario: Scenario, user_request: str):
     request_to_scenario = _build_request_to_scenario()
 
-    def fake_workflow_plan(*, user_message: str, skills_readme: str, skill_names: list[str], skill_groups: list[str]) -> dict:
+    def fake_workflow_plan(
+        *, user_message: str, skills_readme: str, skill_names: list[str], skill_groups: list[str], conversation_history: str
+    ) -> dict:
         s = request_to_scenario[user_message]
         if s.expected_action == "custom_script":
             return {
@@ -561,6 +563,7 @@ def test_hr_scopes_scenarios_pass_heuristic_qualitative_evaluation(monkeypatch, 
         attempt: int,
         previous_error: str,
         previous_code: str,
+        conversation_history: str,
     ) -> str:
         plan = json.loads(plan_json)
         action = plan.get("action")
@@ -590,6 +593,7 @@ print("count", len(hires))
         exec_stderr: str,
         exit_code: int,
         attempts: int,
+        conversation_history: str,
     ) -> str:
         plan = json.loads(plan_json)
         if plan.get("action") == "custom_script":
@@ -597,7 +601,9 @@ print("count", len(hires))
         skill_name = plan.get("skill_name")
         return f"Completed: {skill_name}."
 
-    def fake_workflow_plan_review(*, user_message: str, proposed_plan_json: str, selected_skill_md: str) -> dict:
+    def fake_workflow_plan_review(
+        *, user_message: str, proposed_plan_json: str, selected_skill_md: str, conversation_history: str
+    ) -> dict:
         return json.loads(proposed_plan_json)
 
     monkeypatch.setattr(agent_module, "workflow_plan", fake_workflow_plan)

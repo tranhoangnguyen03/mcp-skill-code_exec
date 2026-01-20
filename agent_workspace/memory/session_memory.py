@@ -241,6 +241,16 @@ class SessionMemory:
 
         return "\n".join(parts)
 
+    def get_conversation_history(self, max_messages: int = 10) -> str:
+        messages = self.get_messages()
+        recent = messages[-max_messages:] if max_messages else messages
+        parts: list[str] = []
+        for msg in recent:
+            prefix = "User" if msg.role == "user" else "Assistant"
+            content = msg.content[:500] + "..." if len(msg.content) > 500 else msg.content
+            parts.append(f"{prefix}: {content}")
+        return "\n".join(parts)
+
     def clear(self) -> None:
         """Clear session and delete file."""
         self._data_layer.delete_thread(self.session_id)
