@@ -6,7 +6,7 @@ import sys
 import tempfile
 from pathlib import Path
 
-from .types import ExecutionResult
+from ._execution_result import ExecutionResult
 
 
 class PythonCodeExecutor:

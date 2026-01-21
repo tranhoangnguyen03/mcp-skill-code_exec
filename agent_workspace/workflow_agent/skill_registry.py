@@ -1,14 +1,62 @@
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from pathlib import Path
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    pass
 
 
 @dataclass(frozen=True)
 class Skill:
+    """Represents a skill with its metadata and content.
+
+    Attributes:
+        name: The skill name
+        path: Path to the skill Markdown file
+        content: Full Markdown content of the skill
+    """
     name: str
     path: Path
     content: str
+
+    @property
+    def group(self) -> str | None:
+        """Extract the skill group from the path (e.g., 'HR-scopes')."""
+        parts = list(self.path.parts)
+        try:
+            idx = parts.index("skills_v2")
+        except ValueError:
+            return None
+        if idx + 1 >= len(parts):
+            return None
+        group = parts[idx + 1]
+        return group or None
+
+    @property
+    def logic_flow_steps(self) -> list[str]:
+        """Extract logic flow steps from the '## Logic Flow' section."""
+        lines = self.content.splitlines()
+        start_idx = None
+        for idx, line in enumerate(lines):
+            if line.strip().lower() == "## logic flow":
+                start_idx = idx + 1
+                break
+        if start_idx is None:
+            return []
+
+        steps: list[str] = []
+        for line in lines[start_idx:]:
+            stripped = line.strip()
+            if stripped.startswith("## "):
+                break
+            m = re.match(r"^\d+\.\s+(.*)$", stripped)
+            if m:
+                steps.append(m.group(1).strip())
+
+        return steps
 
 
 class SkillRegistry:

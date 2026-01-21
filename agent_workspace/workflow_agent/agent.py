@@ -1,28 +1,54 @@
+"""WorkflowAgent - Main orchestration class.
+
+This module provides the WorkflowAgent class that orchestrates the complete
+workflow from planning to code execution and response generation.
+
+For a more modular architecture, consider using the Planner and WorkflowExecutor
+components directly from the sub_agents package.
+"""
 from __future__ import annotations
 
 import json
 import os
-import re
-from dataclasses import dataclass
 from pathlib import Path
 
-from .baml_bridge import workflow_chat, workflow_codegen, workflow_plan, workflow_plan_review, workflow_respond
+from .baml_bridge import workflow_chat
 from .code_executor import PythonCodeExecutor
-from .mcp_docs_registry import MCPDocsRegistry
 from .skill_registry import SkillRegistry
-from .types import AgentResult, ExecutionResult
+from .sub_agents.executor import ExecutionResult, WorkflowExecutor
+from .sub_agents.planner import Plan, Planner
+from .types import AgentResult
 
 
-@dataclass(frozen=True)
-class Plan:
-    action: str
-    skill_group: str | None
-    skill_name: str | None
-    intent: str
-    steps: list[str]
+def _env_bool(name: str, *, default: bool = False) -> bool:
+    """Parse environment variable as boolean."""
+    value = os.getenv(name)
+    if value is None:
+        return default
+    cleaned = value.strip().lower()
+    if not cleaned:
+        return default
+    if cleaned in {"1", "true", "yes", "y", "on"}:
+        return True
+    if cleaned in {"0", "false", "no", "n", "off"}:
+        return False
+    return default
 
 
 class WorkflowAgent:
+    """Main orchestration class for workflow execution.
+
+    The WorkflowAgent coordinates the complete workflow:
+    1. Planning - Analyze user intent and create a plan
+    2. Code Generation - Generate Python code based on the plan
+    3. Execution - Execute the generated code
+    4. Response - Generate a final response based on execution results
+
+    This class maintains backward compatibility with the existing API.
+    For more granular control, use the Planner and WorkflowExecutor
+    components directly from the sub_agents package.
+    """
+
     def __init__(self, max_attempts: int = 3, *, enable_workflow_plan_review: bool | None = None):
         self.max_attempts = max(1, int(max_attempts))
         self.workspace_dir = Path(__file__).resolve().parents[1]
@@ -33,118 +59,97 @@ class WorkflowAgent:
         self.default_docs_dir = self.skills_v2_dir / "HR-scopes" / "tools" / "mcp_docs"
         self.executor = PythonCodeExecutor(self.workspace_dir, extra_pythonpaths=[self.default_tools_root])
         self.custom_skill_md_path = self.skills_v2_dir / "custom_skill.md"
+
+        # Initialize sub-agents
+        self._planner = Planner(self.skills)
+        self._workflow_executor = WorkflowExecutor(
+            executor=self.executor,
+            skills_v2_dir=self.skills_v2_dir,
+            default_tools_root=self.default_tools_root,
+            default_docs_dir=self.default_docs_dir,
+            max_attempts=self.max_attempts,
+        )
+
         if enable_workflow_plan_review is None:
             enable_workflow_plan_review = _env_bool("enable_workflow_plan_review", default=False)
         self.enable_workflow_plan_review = bool(enable_workflow_plan_review)
 
     async def run(self, user_message: str, *, conversation_history: str = "") -> AgentResult:
-        plan, plan_json, selected_skill = self.plan(user_message=user_message, conversation_history=conversation_history)
+        """Run the complete workflow.
+
+        This is the main entry point that orchestrates the full workflow
+        from planning to response generation.
+
+        Args:
+            user_message: The user's request
+            conversation_history: Previous conversation context
+
+        Returns:
+            AgentResult containing the final response and execution details
+        """
+        # Phase 1: Planning
+        planning_result = self._planner.plan(
+            user_message=user_message,
+            conversation_history=conversation_history,
+            enable_review=self.enable_workflow_plan_review,
+        )
+        plan = planning_result.plan
+        plan_json = planning_result.plan_json
+        selected_skill = planning_result.selected_skill
+
+        # Phase 2: Chat or Execute
         if plan.action == "chat":
             final_response = self.chat(user_message=user_message, conversation_history=conversation_history)
             return AgentResult(final_response=final_response.strip(), plan_json=plan_json)
 
         skill_md = self.get_skill_md(plan=plan, selected_skill=selected_skill)
-        code, exec_result, attempts_used = self.generate_and_execute_with_retries(
+
+        # Phase 3: Execute with retries
+        execute_result = self._workflow_executor.execute(
             user_message=user_message,
             plan_json=plan_json,
             skill_md=skill_md,
             conversation_history=conversation_history,
         )
-        final_response = self.respond(
+
+        # Phase 4: Generate response
+        final_response = self._workflow_executor.respond(
             user_message=user_message,
             plan_json=plan_json,
-            executed_code=code,
-            exec_result=exec_result,
-            attempts=attempts_used,
+            executed_code=execute_result.code,
+            exec_result=execute_result.exec_result,
+            attempts=execute_result.attempts_used,
             conversation_history=conversation_history,
         )
 
         return AgentResult(
             final_response=final_response.strip(),
             plan_json=plan_json,
-            generated_code=code,
-            exec_stdout=exec_result.stdout,
-            exec_stderr=exec_result.stderr,
-            attempts=attempts_used,
+            generated_code=execute_result.code,
+            exec_stdout=execute_result.exec_result.stdout,
+            exec_stderr=execute_result.exec_result.stderr,
+            attempts=execute_result.attempts_used,
         )
 
     def plan(self, user_message: str, *, conversation_history: str = ""):
-        skills_readme = self.skills.read_skills_readme()
-        skills = self.skills.list_skills()
-        skill_groups = self.skills.list_skill_groups()
-        plan_data = workflow_plan(
+        """Create a plan from user message.
+
+        This method delegates to the Planner component and returns
+        a tuple of (Plan, plan_json, selected_skill).
+
+        Args:
+            user_message: The user's request
+            conversation_history: Previous conversation context
+
+        Returns:
+            Tuple of (Plan, plan_json, selected_skill)
+        """
+        planning_result = self._planner.plan(
             user_message=user_message,
-            skills_readme=skills_readme,
-            skill_names=[s.name for s in skills],
-            skill_groups=skill_groups,
             conversation_history=conversation_history,
+            enable_review=self.enable_workflow_plan_review,
         )
-        plan = _plan_from_dict(plan_data, skills)
-        selected_skill = None
-        if plan.action == "execute_skill" and plan.skill_name:
-            selected_skill = next(s for s in skills if s.name == plan.skill_name)
-            skill_group = _infer_skill_group(selected_skill.path)
-            skill_steps = _extract_logic_flow_steps(selected_skill.content)
-            plan = Plan(
-                action=plan.action,
-                skill_group=skill_group,
-                skill_name=plan.skill_name,
-                intent=plan.intent,
-                steps=skill_steps or plan.steps,
-            )
-
-        proposed_plan_json = json.dumps(
-            {
-                "action": plan.action,
-                "skill_group": plan.skill_group,
-                "skill_name": plan.skill_name,
-                "intent": plan.intent,
-                "steps": plan.steps,
-            },
-            indent=2,
-            ensure_ascii=False,
-        )
-
-        if selected_skill is not None and self.enable_workflow_plan_review:
-            reviewed_plan_data = workflow_plan_review(
-                user_message=user_message,
-                proposed_plan_json=proposed_plan_json,
-                selected_skill_md=selected_skill.content,
-                conversation_history=conversation_history,
-            )
-            reviewed_plan = _plan_from_dict(reviewed_plan_data, skills)
-            if reviewed_plan.action != "execute_skill":
-                plan = reviewed_plan
-                selected_skill = None
-            else:
-                plan = reviewed_plan
-                selected_skill = next(s for s in skills if s.name == plan.skill_name)
-                skill_group = _infer_skill_group(selected_skill.path)
-                skill_steps = _extract_logic_flow_steps(selected_skill.content)
-                plan = Plan(
-                    action=plan.action,
-                    skill_group=skill_group,
-                    skill_name=plan.skill_name,
-                    intent=plan.intent,
-                    steps=skill_steps or plan.steps,
-                )
-
-        plan_json = json.dumps(
-            {
-                "action": plan.action,
-                "skill_group": plan.skill_group,
-                "skill_name": plan.skill_name,
-                "intent": plan.intent,
-                "steps": plan.steps,
-            },
-            indent=2,
-            ensure_ascii=False,
-        )
-
-        if plan.action in {"chat", "custom_script"}:
-            return plan, plan_json, None
-
-        return plan, plan_json, selected_skill
+        return planning_result.plan, planning_result.plan_json, planning_result.selected_skill
 
     def codegen(
         self,
@@ -157,7 +162,27 @@ class WorkflowAgent:
         previous_error: str = "",
         previous_code: str = "",
     ) -> str:
-        tool_contracts = self._docs_registry_for_plan(plan_json=plan_json).render_tool_contracts()
+        """Generate Python code for the given plan.
+
+        Args:
+            user_message: The user's request
+            plan_json: JSON string representation of the plan
+            skill_md: The skill Markdown content
+            conversation_history: Previous conversation context
+            attempt: Current attempt number (for retry context)
+            previous_error: Error from previous attempt (for retry context)
+            previous_code: Code from previous attempt (for retry context)
+
+        Returns:
+            Generated Python code as string
+        """
+        from .sub_agents.executor import _extract_code_block
+
+        docs_registry = self._docs_registry_for_plan(plan_json=plan_json)
+        tool_contracts = docs_registry.render_tool_contracts()
+
+        from .baml_bridge import workflow_codegen
+
         code = workflow_codegen(
             user_message=user_message,
             plan_json=plan_json,
@@ -173,9 +198,21 @@ class WorkflowAgent:
         return extracted
 
     def execute(self, code: str, *, plan_json: str | None = None) -> ExecutionResult:
+        """Execute generated Python code.
+
+        Args:
+            code: Python code to execute
+            plan_json: Optional JSON string representation of the plan
+
+        Returns:
+            ExecutionResult with stdout, stderr, and exit code
+        """
+        from .sub_agents.executor import ExecutionResult as ExecResult
+
         tools_root = self._tools_root_for_plan(plan_json=plan_json)
         extra = [tools_root] if tools_root and tools_root != self.default_tools_root else None
-        return self.executor.run(code, extra_pythonpaths=extra)
+        raw_result = self.executor.run(code, extra_pythonpaths=extra)
+        return ExecResult(stdout=raw_result.stdout, stderr=raw_result.stderr, exit_code=raw_result.exit_code)
 
     def respond(
         self,
@@ -187,6 +224,21 @@ class WorkflowAgent:
         conversation_history: str = "",
         attempts: int,
     ) -> str:
+        """Generate a final response based on execution results.
+
+        Args:
+            user_message: The user's request
+            plan_json: JSON string representation of the plan
+            executed_code: The code that was executed
+            exec_result: The execution result
+            conversation_history: Previous conversation context
+            attempts: Number of attempts used
+
+        Returns:
+            Final response string
+        """
+        from .baml_bridge import workflow_respond
+
         return workflow_respond(
             user_message=user_message,
             plan_json=plan_json,
@@ -199,6 +251,15 @@ class WorkflowAgent:
         )
 
     def chat(self, user_message: str, *, conversation_history: str = "") -> str:
+        """Generate a conversational response.
+
+        Args:
+            user_message: The user's request
+            conversation_history: Previous conversation context
+
+        Returns:
+            Response string
+        """
         skills_readme = self.skills.read_skills_readme()
         custom_skill_md = self.custom_skill_md_path.read_text(encoding="utf-8")
         return workflow_chat(
@@ -209,6 +270,15 @@ class WorkflowAgent:
         )
 
     def get_skill_md(self, plan: Plan, selected_skill) -> str:
+        """Get the skill Markdown content.
+
+        Args:
+            plan: The plan object
+            selected_skill: The selected skill object
+
+        Returns:
+            Skill Markdown content as string
+        """
         if plan.action == "execute_skill":
             return selected_skill.content
         return self.custom_skill_md_path.read_text(encoding="utf-8")
@@ -216,40 +286,39 @@ class WorkflowAgent:
     def generate_and_execute_with_retries(
         self, user_message: str, plan_json: str, skill_md: str, *, conversation_history: str = ""
     ):
-        last_code = ""
-        last_error = ""
-        last_exec = ExecutionResult(stdout="", stderr="", exit_code=1)
-        attempts_used = 0
+        """Generate and execute code with retry logic.
 
-        for attempt in range(1, self.max_attempts + 1):
-            attempts_used = attempt
-            try:
-                code = self.codegen(
-                    user_message=user_message,
-                    plan_json=plan_json,
-                    skill_md=skill_md,
-                    attempt=attempt,
-                    previous_error=last_error,
-                    previous_code=last_code,
-                    conversation_history=conversation_history,
-                )
-            except Exception as e:
-                last_code = last_code or ""
-                last_error = f"Code generation failed: {e}"
-                last_exec = ExecutionResult(stdout="", stderr=last_error, exit_code=1)
-                continue
+        This is a convenience method that wraps the execute phase.
+        For more control, use the WorkflowExecutor directly.
 
-            last_code = code
-            exec_result = self.execute(code=code, plan_json=plan_json)
-            last_exec = exec_result
-            if exec_result.exit_code == 0:
-                return code, exec_result, attempts_used
+        Args:
+            user_message: The user's request
+            plan_json: JSON string representation of the plan
+            skill_md: The skill Markdown content
+            conversation_history: Previous conversation context
 
-            last_error = exec_result.stderr or f"Execution failed with exit_code={exec_result.exit_code}"
+        Returns:
+            Tuple of (code, exec_result, attempts_used)
+        """
+        execute_result = self._workflow_executor.execute(
+            user_message=user_message,
+            plan_json=plan_json,
+            skill_md=skill_md,
+            conversation_history=conversation_history,
+        )
+        return execute_result.code, execute_result.exec_result, execute_result.attempts_used
 
-        return last_code, last_exec, attempts_used
+    def _docs_registry_for_plan(self, *, plan_json: str):
+        """Get the MCP docs registry for the given plan.
 
-    def _docs_registry_for_plan(self, *, plan_json: str) -> MCPDocsRegistry:
+        Args:
+            plan_json: JSON string representation of the plan
+
+        Returns:
+            MCPDocsRegistry instance
+        """
+        from .mcp_docs_registry import MCPDocsRegistry
+
         docs_dir = self.default_docs_dir
         try:
             data = json.loads(plan_json)
@@ -264,126 +333,63 @@ class WorkflowAgent:
         return MCPDocsRegistry(docs_dir, tools_pythonpath=self.default_tools_root)
 
     def _tools_root_for_plan(self, *, plan_json: str | None) -> Path | None:
+        """Get the tools root for the given plan.
+
+        Args:
+            plan_json: Optional JSON string representation of the plan
+
+        Returns:
+            Path to tools root or None
+        """
         return self.default_tools_root
 
 
-def _parse_plan(plan_text: str, skills):
-    cleaned = plan_text.strip()
-    if cleaned.startswith("```"):
-        cleaned = cleaned.split("```", 2)[1]
-    cleaned = cleaned.strip()
-    data = json.loads(cleaned)
-    return _plan_from_dict(data, skills)
-
-
-def _plan_from_dict(data: dict, skills) -> Plan:
-    action = str(data.get("action") or "").strip()
-    if action not in {"chat", "execute_skill", "custom_script"}:
-        raise ValueError(f"Unknown action: {action}")
-
-    skill_name = data.get("skill_name")
-    if action == "execute_skill":
-        if not isinstance(skill_name, str) or not skill_name.strip():
-            raise ValueError("Missing skill_name for execute_skill")
-        skill_name = skill_name.strip()
-        available = [s.name for s in skills]
-        if skill_name not in set(available):
-            normalized_available = {_normalize_skill_name(name): name for name in available}
-            normalized = _normalize_skill_name(skill_name)
-
-            mapped = normalized_available.get(normalized)
-            if mapped:
-                skill_name = mapped
-            elif len(available) == 1:
-                skill_name = available[0]
-            else:
-                action = "custom_script"
-                skill_name = _safe_custom_skill_name(skill_name)
-    else:
-        if action == "custom_script":
-            skill_name = _safe_custom_skill_name(skill_name)
-        else:
-            skill_name = None
-
-    intent = str(data.get("intent", ""))
-    steps = [str(s) for s in (data.get("steps") or [])]
-    skill_group = data.get("skill_group") if action in {"execute_skill", "custom_script"} else None
-    if action in {"execute_skill", "custom_script"}:
-        if not isinstance(skill_group, str) or not skill_group.strip():
-            skill_group = None
-        else:
-            skill_group = skill_group.strip()
-
-    return Plan(action=action, skill_group=skill_group, skill_name=skill_name, intent=intent, steps=steps)
-
-
-def _safe_custom_skill_name(value) -> str | None:
-    if not isinstance(value, str):
-        return None
-    cleaned = re.sub(r"\s+", " ", value.strip())
-    if not cleaned:
-        return None
-    return cleaned[:80]
-
-
-def _normalize_skill_name(value: str) -> str:
-    return re.sub(r"[^a-z0-9]+", "", value.strip().lower())
-
-
-def _infer_skill_group(skill_path: Path) -> str | None:
-    parts = list(skill_path.parts)
-    try:
-        idx = parts.index("skills_v2")
-    except ValueError:
-        return None
-    if idx + 1 >= len(parts):
-        return None
-    group = parts[idx + 1]
-    return group or None
+# Backward-compatible re-exports for helper functions
+# These were previously defined in this module but have been moved/refactored
+from .skill_registry import Skill
 
 
 def _extract_logic_flow_steps(skill_md: str) -> list[str]:
-    lines = skill_md.splitlines()
-    start_idx = None
-    for idx, line in enumerate(lines):
-        if line.strip().lower() == "## logic flow":
-            start_idx = idx + 1
-            break
-    if start_idx is None:
-        return []
+    """Extract logic flow steps from skill Markdown content.
 
-    steps: list[str] = []
-    for line in lines[start_idx:]:
-        stripped = line.strip()
-        if stripped.startswith("## "):
-            break
-        m = re.match(r"^\d+\.\s+(.*)$", stripped)
-        if m:
-            steps.append(m.group(1).strip())
+    This is a backward-compatible wrapper around Skill.logic_flow_steps.
+    Accepts either a Skill object (uses its content) or a raw string.
+    """
+    if isinstance(skill_md, Skill):
+        return skill_md.logic_flow_steps
+    skill = Skill(name="temp", path=Path("temp"), content=skill_md)
+    return skill.logic_flow_steps
 
-    return steps
 
-def _extract_code_block(text: str) -> str:
-    t = text.strip()
-    if "```" not in t:
-        return t
-    parts = t.split("```")
-    if len(parts) < 3:
-        return t
-    code = parts[1]
-    if code.lstrip().startswith(("python\n", "py\n")):
-        code = code.split("\n", 1)[1]
-    return code.strip()
+def _infer_skill_group(skill_path: Path) -> str | None:
+    """Infer the skill group from a skill path.
 
-def _env_bool(name: str, *, default: bool = False) -> bool:
-    value = os.getenv(name)
-    if value is None:
-        return default
-    cleaned = value.strip().lower()
-    if not cleaned:
-        return default
-    if cleaned in {"1", "true", "yes", "y", "on"}:
-        return True
-    if cleaned in {"0", "false", "no", "n", "off"}:
-        return False
-    return default
+    This is a backward-compatible wrapper around Skill.group.
+    Accepts either a Skill object (uses its path) or a Path object.
+    """
+    if isinstance(skill_path, Skill):
+        return skill_path.group
+    skill = Skill(name="temp", path=skill_path, content="")
+    return skill.group
+
+
+# Re-export BAML bridge functions for backward compatibility
+# Tests may monkeypatch these at the agent module level
+from .baml_bridge import (
+    workflow_chat,
+    workflow_codegen,
+    workflow_plan,
+    workflow_plan_review,
+    workflow_respond,
+)
+
+__all__ = [
+    "WorkflowAgent",
+    "workflow_plan",
+    "workflow_plan_review",
+    "workflow_codegen",
+    "workflow_chat",
+    "workflow_respond",
+    "_extract_logic_flow_steps",
+    "_infer_skill_group",
+]

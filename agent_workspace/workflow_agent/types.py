@@ -2,12 +2,12 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+# Re-export ExecutionResult from _execution_result for backward compatibility
+from ._execution_result import ExecutionResult as ExecutionResultFromExecutor
 
-@dataclass(frozen=True)
-class ExecutionResult:
-    stdout: str
-    stderr: str
-    exit_code: int
+
+# Keep ExecutionResult name for backward compatibility
+ExecutionResult = ExecutionResultFromExecutor
 
 
 @dataclass(frozen=True)
