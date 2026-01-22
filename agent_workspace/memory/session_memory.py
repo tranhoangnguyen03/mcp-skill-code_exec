@@ -255,6 +255,66 @@ class SessionMemory:
         """Clear session and delete file."""
         self._data_layer.delete_thread(self.session_id)
 
+    # --- Multi-Turn Workflow State APIs ---
+
+    def save_workflow_state(self, state: dict) -> None:
+        """Save workflow state for multi-turn workflows.
+
+        Args:
+            state: Dictionary containing workflow state with keys:
+                - workflow_id: Unique identifier
+                - current_step: Current step index
+                - plan_json: The original plan JSON
+                - collected_facts: Key-value pairs discovered
+                - checkpoint_results: Raw results from checkpoints
+                - is_multi_turn: Whether this is multi-turn
+                - created_at: ISO timestamp
+        """
+        data = self._data_layer._get_thread_data(self.session_id, create_if_missing=True)
+        now = datetime.now().isoformat()
+
+        data["workflow_state"] = {
+            **state,
+            "updated_at": now,
+        }
+        data["updated_at"] = now
+
+        self._data_layer._save_thread(self.session_id, data)
+
+    def get_workflow_state(self) -> dict | None:
+        """Retrieve workflow state if exists.
+
+        Returns:
+            Dictionary with workflow state or None if no pending workflow.
+        """
+        data = self._data_layer._load_thread(self.session_id)
+        if data is None:
+            return None
+
+        return data.get("workflow_state")
+
+    def has_pending_workflow(self) -> bool:
+        """Check if there's a pending workflow that needs continuation.
+
+        Returns:
+            True if there's a workflow state with is_multi_turn=True
+        """
+        state = self.get_workflow_state()
+        if state is None:
+            return False
+        return state.get("is_multi_turn", False)
+
+    def clear_workflow_state(self) -> None:
+        """Clear the workflow state (e.g., after workflow completion)."""
+        data = self._data_layer._get_thread_data(self.session_id, create_if_missing=True)
+        now = datetime.now().isoformat()
+
+        if "workflow_state" in data:
+            del data["workflow_state"]
+        data["updated_at"] = now
+
+        self._data_layer._save_thread(self.session_id, data)
+
     # --- Persistence helpers (for backward compatibility) ---
 
     def _load_if_exists(self) -> None:

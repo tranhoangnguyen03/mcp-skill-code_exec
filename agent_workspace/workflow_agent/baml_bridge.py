@@ -31,6 +31,8 @@ def workflow_plan(
         "skill_name": plan.skill_name,
         "intent": plan.intent,
         "steps": list(plan.steps or []),
+        "requires_lookahead": bool(plan.requires_lookahead),
+        "checkpoints": list(plan.checkpoints or []),
     }
 
 
@@ -61,6 +63,8 @@ def workflow_plan_review(*, user_message: str, proposed_plan_json: str, selected
         "skill_name": plan.skill_name,
         "intent": plan.intent,
         "steps": list(plan.steps or []),
+        "requires_lookahead": bool(plan.requires_lookahead),
+        "checkpoints": list(plan.checkpoints or []),
     }
 
 

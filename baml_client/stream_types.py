@@ -35,6 +35,8 @@ class Plan(BaseModel):
     skill_name: typing.Optional[str] = None
     intent: typing.Optional[str] = None
     steps: typing.List[str]
+    requires_lookahead: typing.Optional[bool] = None
+    checkpoints: typing.List[str]
 
 # #########################################################################
 # Generated type aliases (0)

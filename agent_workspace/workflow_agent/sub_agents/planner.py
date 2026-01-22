@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import json
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -29,12 +29,16 @@ class Plan:
         skill_name: The skill name for execution
         intent: Human-readable description of what to do
         steps: List of logic flow steps from skill MD or LLM
+        requires_lookahead: Whether this plan needs external data lookup before execution
+        checkpoints: Steps that produce facts for downstream use
     """
     action: str
     skill_group: str | None
     skill_name: str | None
     intent: str
     steps: list[str]
+    requires_lookahead: bool = False
+    checkpoints: list[str] = field(default_factory=list)
 
 
 @dataclass(frozen=True)
@@ -100,6 +104,8 @@ class Planner:
                     skill_name=plan.skill_name,
                     intent=plan.intent,
                     steps=skill_steps or plan.steps,
+                    requires_lookahead=plan.requires_lookahead,
+                    checkpoints=plan.checkpoints,
                 )
 
         proposed_plan_json = _plan_to_json(plan)
@@ -127,6 +133,8 @@ class Planner:
                         skill_name=plan.skill_name,
                         intent=plan.intent,
                         steps=skill_steps or plan.steps,
+                        requires_lookahead=plan.requires_lookahead,
+                        checkpoints=plan.checkpoints,
                     )
 
         plan_json = _plan_to_json(plan)
@@ -195,7 +203,19 @@ def _plan_from_dict(data: dict, skills: list[Skill]) -> Plan:
         else:
             skill_group = skill_group.strip()
 
-    return Plan(action=action, skill_group=skill_group, skill_name=skill_name, intent=intent, steps=steps)
+    # Multi-turn fields
+    requires_lookahead = bool(data.get("requires_lookahead", False))
+    checkpoints = [str(c) for c in (data.get("checkpoints") or [])]
+
+    return Plan(
+        action=action,
+        skill_group=skill_group,
+        skill_name=skill_name,
+        intent=intent,
+        steps=steps,
+        requires_lookahead=requires_lookahead,
+        checkpoints=checkpoints,
+    )
 
 
 def _plan_to_json(plan: Plan) -> str:
@@ -207,6 +227,8 @@ def _plan_to_json(plan: Plan) -> str:
             "skill_name": plan.skill_name,
             "intent": plan.intent,
             "steps": plan.steps,
+            "requires_lookahead": plan.requires_lookahead,
+            "checkpoints": plan.checkpoints,
         },
         indent=2,
         ensure_ascii=False,

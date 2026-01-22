@@ -6,9 +6,9 @@ from __future__ import annotations
 
 import json
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 # Import from agent module (which re-exports from baml_bridge) to support
 # test monkeypatching at the agent module level
@@ -18,6 +18,11 @@ from ..mcp_docs_registry import MCPDocsRegistry
 
 if TYPE_CHECKING:
     from ..code_executor import PythonCodeExecutor as ExecutorType
+
+
+# Regex patterns for continuation signal detection
+CONTINUE_FACT_PATTERN = re.compile(r"CONTINUE_FACT:\s*(\w+)=(.+)")
+CONTINUE_WORKFLOW_PATTERN = re.compile(r"CONTINUE_WORKFLOW:\s*(\w+)")
 
 
 @dataclass(frozen=True)
@@ -32,6 +37,24 @@ class ExecuteResult:
     code: str
     exec_result: ExecutionResult
     attempts_used: int
+
+
+@dataclass
+class MultiTurnExecuteResult:
+    """Result of execution that may need continuation.
+
+    Attributes:
+        code: The generated and executed code
+        exec_result: The execution result
+        attempts_used: Number of attempts used
+        needs_continuation: Whether this workflow needs another turn
+        collected_facts: Key-value pairs extracted from CONTINUE_FACT signals
+    """
+    code: str
+    exec_result: ExecutionResult
+    attempts_used: int
+    needs_continuation: bool = False
+    collected_facts: dict[str, Any] = field(default_factory=dict)
 
 
 class WorkflowExecutor:
@@ -193,3 +216,93 @@ def _extract_code_block(text: str) -> str:
     if code.lstrip().startswith(("python\n", "py\n")):
         code = code.split("\n", 1)[1]
     return code.strip()
+
+
+def detect_continuation_signals(stdout: str) -> tuple[bool, dict[str, Any]]:
+    """Detect continuation signals in execution stdout.
+
+    Args:
+        stdout: The standard output from execution
+
+    Returns:
+        Tuple of (needs_continuation, collected_facts)
+    """
+    needs_continuation = False
+    collected_facts: dict[str, Any] = {}
+
+    # Check for CONTINUE_FACT patterns
+    for match in CONTINUE_FACT_PATTERN.finditer(stdout):
+        key = match.group(1).strip()
+        value = match.group(2).strip()
+        collected_facts[key] = value
+
+    # Check for CONTINUE_WORKFLOW pattern
+    for match in CONTINUE_WORKFLOW_PATTERN.finditer(stdout):
+        signal = match.group(1).strip().lower()
+        if signal == "checkpoint_complete":
+            needs_continuation = True
+
+    return needs_continuation, collected_facts
+
+
+class MultiTurnWorkflowExecutor:
+    """Extended executor with multi-turn workflow support."""
+
+    def __init__(self, executor: WorkflowExecutor):
+        self._inner = executor
+
+    def execute_with_continuation(
+        self,
+        user_message: str,
+        plan_json: str,
+        skill_md: str,
+        *,
+        conversation_history: str = "",
+        workflow_state: dict | None = None,
+    ) -> MultiTurnExecuteResult:
+        """Execute workflow with multi-turn support.
+
+        If the plan has requires_lookahead=true and a checkpoint step
+        emits CONTINUE signals, this method returns a MultiTurnExecuteResult
+        with needs_continuation=True and collected_facts.
+
+        Args:
+            user_message: The user's request
+            plan_json: JSON string representation of the plan
+            skill_md: The skill Markdown content
+            conversation_history: Previous conversation context
+            workflow_state: Optional existing workflow state to resume
+
+        Returns:
+            MultiTurnExecuteResult with continuation info if applicable
+        """
+        # Parse plan to check for multi-turn
+        plan_data = json.loads(plan_json)
+        is_multi_turn = plan_data.get("requires_lookahead", False)
+
+        # Inject collected facts from previous turns into conversation history
+        enriched_history = conversation_history
+        if workflow_state and workflow_state.get("collected_facts"):
+            facts_section = "## Collected Facts from Previous Steps\n"
+            for key, value in workflow_state["collected_facts"].items():
+                facts_section += f"- {key}: {value}\n"
+            enriched_history = f"{facts_section}\n{conversation_history}"
+
+        # Run standard execution
+        result = self._inner.execute(
+            user_message=user_message,
+            plan_json=plan_json,
+            skill_md=skill_md,
+            conversation_history=enriched_history,
+        )
+
+        # Check for continuation signals
+        needs_continuation, collected_facts = detect_continuation_signals(result.exec_result.stdout)
+
+        return MultiTurnExecuteResult(
+            code=result.code,
+            exec_result=result.exec_result,
+            attempts_used=result.attempts_used,
+            needs_continuation=needs_continuation and is_multi_turn,
+            collected_facts=collected_facts,
+        )

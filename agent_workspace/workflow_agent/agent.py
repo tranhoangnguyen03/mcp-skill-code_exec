@@ -10,14 +10,17 @@ from __future__ import annotations
 
 import json
 import os
+import uuid
+from datetime import datetime
 from pathlib import Path
+from typing import Any
 
 from .baml_bridge import workflow_chat
 from .code_executor import PythonCodeExecutor
 from .skill_registry import SkillRegistry
-from .sub_agents.executor import ExecutionResult, WorkflowExecutor
+from .sub_agents.executor import ExecutionResult, WorkflowExecutor, MultiTurnWorkflowExecutor
 from .sub_agents.planner import Plan, Planner
-from .types import AgentResult
+from .types import AgentResult, WorkflowExecuteResult, WorkflowState
 
 
 def _env_bool(name: str, *, default: bool = False) -> bool:
@@ -69,6 +72,8 @@ class WorkflowAgent:
             default_docs_dir=self.default_docs_dir,
             max_attempts=self.max_attempts,
         )
+        # Initialize multi-turn executor wrapper
+        self._multi_turn_executor = MultiTurnWorkflowExecutor(self._workflow_executor)
 
         if enable_workflow_plan_review is None:
             enable_workflow_plan_review = _env_bool("enable_workflow_plan_review", default=False)
@@ -104,13 +109,48 @@ class WorkflowAgent:
 
         skill_md = self.get_skill_md(plan=plan, selected_skill=selected_skill)
 
-        # Phase 3: Execute with retries
-        execute_result = self._workflow_executor.execute(
+        # Phase 3: Execute with retries (Multi-turn aware)
+        execute_result = self.execute_multi_turn_workflow(
             user_message=user_message,
             plan_json=plan_json,
             skill_md=skill_md,
             conversation_history=conversation_history,
         )
+
+        workflow_state = None
+        if execute_result.needs_continuation:
+            workflow_state = self.create_workflow_state(
+                session_id=str(uuid.uuid4()),
+                plan_json=plan_json,
+                collected_facts=execute_result.continuation_facts,
+            )
+            max_turns = 2
+            try:
+                plan_data = json.loads(plan_json)
+                checkpoints = plan_data.get("checkpoints") or []
+                if isinstance(checkpoints, list):
+                    max_turns = max(2, len(checkpoints) + 1)
+            except Exception:
+                max_turns = 2
+
+            turns = 1
+            while execute_result.needs_continuation and turns < max_turns:
+                workflow_state = self.update_workflow_state(
+                    workflow_state,
+                    next_step=workflow_state.get("current_step", 0) + 1,
+                    facts=execute_result.continuation_facts,
+                )
+                execute_result = self.execute_multi_turn_workflow(
+                    user_message=user_message,
+                    plan_json=plan_json,
+                    skill_md=skill_md,
+                    conversation_history=conversation_history,
+                    workflow_state=workflow_state,
+                )
+                turns += 1
+
+            if not execute_result.needs_continuation:
+                workflow_state = None
 
         # Phase 4: Generate response
         final_response = self._workflow_executor.respond(
@@ -129,6 +169,7 @@ class WorkflowAgent:
             exec_stdout=execute_result.exec_result.stdout,
             exec_stderr=execute_result.exec_result.stderr,
             attempts=execute_result.attempts_used,
+            workflow_state=workflow_state,
         )
 
     def plan(self, user_message: str, *, conversation_history: str = ""):
@@ -180,8 +221,6 @@ class WorkflowAgent:
 
         docs_registry = self._docs_registry_for_plan(plan_json=plan_json)
         tool_contracts = docs_registry.render_tool_contracts()
-
-        from .baml_bridge import workflow_codegen
 
         code = workflow_codegen(
             user_message=user_message,
@@ -237,8 +276,6 @@ class WorkflowAgent:
         Returns:
             Final response string
         """
-        from .baml_bridge import workflow_respond
-
         return workflow_respond(
             user_message=user_message,
             plan_json=plan_json,
@@ -307,6 +344,113 @@ class WorkflowAgent:
             conversation_history=conversation_history,
         )
         return execute_result.code, execute_result.exec_result, execute_result.attempts_used
+
+    def execute_multi_turn_workflow(
+        self,
+        user_message: str,
+        plan_json: str,
+        skill_md: str,
+        *,
+        conversation_history: str = "",
+        workflow_state: dict | None = None,
+    ) -> WorkflowExecuteResult:
+        """Execute a workflow that may span multiple turns.
+
+        For multi-turn workflows (requires_lookahead=true), this method:
+        1. Executes the code with continuation signal detection
+        2. If a checkpoint emits CONTINUE signals, returns a WorkflowExecuteResult
+           with needs_continuation=True and the collected facts
+        3. If no continuation is needed, returns the normal execution result
+
+        Args:
+            user_message: The user's request
+            plan_json: JSON string representation of the plan
+            skill_md: The skill Markdown content
+            conversation_history: Previous conversation context
+            workflow_state: Optional existing workflow state to resume
+
+        Returns:
+            WorkflowExecuteResult with continuation info if applicable
+        """
+        result = self._multi_turn_executor.execute_with_continuation(
+            user_message=user_message,
+            plan_json=plan_json,
+            skill_md=skill_md,
+            conversation_history=conversation_history,
+            workflow_state=workflow_state,
+        )
+
+        # Convert to WorkflowExecuteResult
+        return WorkflowExecuteResult(
+            code=result.code,
+            exec_result=result.exec_result,
+            attempts_used=result.attempts_used,
+            needs_continuation=result.needs_continuation,
+            workflow_state=None,
+            continuation_facts=result.collected_facts,
+        )
+
+    @staticmethod
+    def create_workflow_state(
+        session_id: str,
+        plan_json: str,
+        collected_facts: dict[str, Any] | None = None,
+    ) -> dict:
+        """Create a new workflow state dictionary for multi-turn workflows.
+
+        Args:
+            session_id: The session/thread ID
+            plan_json: The plan JSON for this workflow
+            collected_facts: Optional initial facts from first turn
+
+        Returns:
+            Dictionary representing the workflow state
+        """
+        return {
+            "workflow_id": f"wf_{uuid.uuid4().hex[:8]}",
+            "session_id": session_id,
+            "current_step": 0,
+            "plan_json": plan_json,
+            "collected_facts": collected_facts or {},
+            "checkpoint_results": [],
+            "is_multi_turn": True,
+            "created_at": datetime.now().isoformat(),
+        }
+
+    @staticmethod
+    def update_workflow_state(
+        state: dict,
+        next_step: int,
+        facts: dict[str, Any] | None = None,
+        checkpoint_result: dict | None = None,
+    ) -> dict:
+        """Update a workflow state for the next turn.
+
+        Args:
+            state: The existing workflow state
+            next_step: The step index to advance to
+            facts: Additional facts to merge
+            checkpoint_result: Raw result from the checkpoint
+
+        Returns:
+            Updated workflow state dictionary
+        """
+        updated = dict(state)
+        updated["current_step"] = next_step
+
+        # Merge new facts
+        if facts:
+            existing_facts = updated.get("collected_facts", {})
+            updated["collected_facts"] = {**existing_facts, **facts}
+
+        # Add checkpoint result
+        if checkpoint_result:
+            results = updated.get("checkpoint_results", [])
+            results.append(checkpoint_result)
+            updated["checkpoint_results"] = results
+
+        updated["updated_at"] = datetime.now().isoformat()
+        return updated
 
     def _docs_registry_for_plan(self, *, plan_json: str):
         """Get the MCP docs registry for the given plan.
@@ -392,4 +536,7 @@ __all__ = [
     "workflow_respond",
     "_extract_logic_flow_steps",
     "_infer_skill_group",
+    # Multi-turn types
+    "WorkflowExecuteResult",
+    "WorkflowState",
 ]

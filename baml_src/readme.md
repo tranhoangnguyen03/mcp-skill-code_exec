@@ -13,37 +13,43 @@ This directory contains the BAML prompt definitions that generate the LLM code a
 
 ```
 baml_src/
-├── readme.md              # This file
-├── clients.baml           # LLM client configurations (OpenRouter, etc.)
-├── generators.baml        # Generator settings (temperature, model, etc.)
-└── workflow_agent.baml    # Main prompts for planning, chat, codegen, respond
+├── readme.md          # This file
+├── clients.baml       # LLM client configurations (OpenRouter, etc.)
+├── generators.baml    # Generator settings (temperature, model, etc.)
+├── types.baml         # Shared data structures (Plan, ChatResponse)
+├── planner.baml       # Planning and review functions
+├── executor.baml      # Code generation and result summary functions
+└── chat.baml          # Conversational chat functions
 ```
 
 ### Key Files
 
 | File | Purpose |
 |------|---------|
-| `workflow_agent.baml` | Contains all 6 prompt functions: `WorkflowPlan`, `WorkflowPlanReview`, `WorkflowCodegen`, `WorkflowChat`, `WorkflowRespond` |
-| `clients.baml` | Defines LLM clients (e.g., `OpenRouterChat`) used by prompts |
+| `types.baml` | Defines shared classes used across all BAML functions |
+| `planner.baml` | Contains `WorkflowPlan` and `WorkflowPlanReview` |
+| `executor.baml` | Contains `WorkflowCodegen` and `WorkflowRespond` |
+| `chat.baml` | Contains `WorkflowChat` |
+| `clients.baml` | Defines LLM clients (e.g., `OpenRouterChat`) |
 | `generators.baml` | Sets generation parameters like temperature, max tokens |
 
 ## Workflow Functions
 
-The agent uses 5 main BAML functions (defined in `workflow_agent.baml`):
+The agent uses several main BAML functions distributed across files:
 
-| Function | Input | Output | When Used |
-|----------|-------|--------|-----------|
-| `WorkflowPlan` | user_message, skills_readme, skill_names, skill_groups, conversation_history | `Plan` (action, intent, steps) | First step: classify request as chat/skill/custom |
-| `WorkflowPlanReview` | user_message, proposed_plan, skill_md, conversation_history | `Plan` (reviewed) | HITL: review user feedback on plan |
-| `WorkflowCodegen` | user_message, plan_json, skill_md, tool_contracts, attempt, previous_error, previous_code, conversation_history | Python code string | Execute: generate script to run |
-| `WorkflowChat` | user_message, skills_readme, custom_skill_md, conversation_history | string | When action="chat": conversational response |
-| `WorkflowRespond` | user_message, plan_json, exec_stdout, exit_code, attempts, conversation_history | string | After execution: summarize results |
+| Function | Input | Output | File | When Used |
+|----------|-------|--------|------|-----------|
+| `WorkflowPlan` | user_message, skills_readme, ..., conversation_history | `Plan` | `planner.baml` | First step: classify request as chat/skill/custom |
+| `WorkflowPlanReview` | user_message, proposed_plan, ..., conversation_history | `Plan` | `planner.baml` | Review/Refine plan based on context or multi-turn rules |
+| `WorkflowCodegen` | user_message, plan_json, skill_md, ..., conversation_history | string | `executor.baml` | Execute: generate Python script to run |
+| `WorkflowChat` | user_message, skills_readme, ..., conversation_history | `ChatResponse` | `chat.baml` | When action="chat": conversational response |
+| `WorkflowRespond` | user_message, plan_json, ..., conversation_history | string | `executor.baml` | After execution: summarize results |
 
 `conversation_history` is a compact plain-text transcript of the last N past messages (most recent last).
 
 ## The Plan Schema
 
-All planning functions return a `Plan` object:
+All planning functions return a `Plan` object (defined in `types.baml`):
 
 ```baml
 class Plan {
@@ -52,6 +58,10 @@ class Plan {
   skill_name string?      // Specific skill (e.g., "onboard_new_hire")
   intent string           // Human-readable description
   steps string[]          // High-level steps (for execution)
+  
+  // Multi-turn support fields
+  requires_lookahead bool // Set to true when the request needs external data lookup
+  checkpoints string[]   // Steps that produce facts for downstream use
 }
 ```
 
@@ -59,7 +69,7 @@ class Plan {
 
 ### 1. Edit the BAML source
 
-Modify prompts in `workflow_agent.baml`. Key sections:
+Modify prompts in the relevant `.baml` file. Key sections:
 - `prompt #"..."#` - The actual prompt text
 - `client OpenRouterChat` - Which LLM to use
 - Input variables like `{{ user_message }}` - Dynamic content
@@ -76,12 +86,12 @@ This updates `baml_client/` with new Python functions.
 ### 3. Verify
 
 ```bash
-python -m pytest -q
+pytest tests/test_multi_turn_workflows.py -v
 ```
 
 ### Example: Adding a New Prompt
 
-1. Add to `workflow_agent.baml`:
+1. Add to a new or existing `.baml` file:
 ```baml
 function MyNewFunction(input: string) -> string {
   client OpenRouterChat
@@ -93,10 +103,11 @@ function MyNewFunction(input: string) -> string {
 
 2. Run `baml generate`
 
-3. Call from Python:
+3. Call from Python (via bridge):
 ```python
-from agent_workspace.workflow_agent.baml_bridge import workflow_my_new_function
-result = workflow_my_new_function(input="hello")
+# In baml_bridge.py
+async def workflow_my_new_function(input: str) -> str:
+    return await b.MyNewFunction(input=input)
 ```
 
 ## Prompt Engineering Tips
@@ -111,18 +122,11 @@ Use `{{ ctx.output_format }}` at the end of prompts to inject the required JSON 
 
 ### Best Practices
 1. Keep prompts concise - LLMs obey explicit constraints
-2. Use "IMPORTANT:" prefixes for critical rules
-3. Test edge cases (empty inputs, unusual requests)
-4. After changes, run `baml generate` before testing
-
-## Debugging Prompts
-
-1. **Check generated client**: Review `baml_client/__init__.py` to verify function signatures
-2. **Print prompts**: Add `print(f"Prompt: {prompt}")` in `baml_bridge.py` for debugging
-3. **Check LLM responses**: The raw output from OpenRouter may reveal issues
+2. Use "CRITICAL:" or "IMPORTANT:" prefixes for critical rules
+3. After changes, run `baml generate` before testing
 
 ## Related Files
 
-- [agent_workspace/workflow_agent/agent.py](../agent_workspace/workflow_agent/agent.py) - Agent that calls BAML functions
-- [agent_workspace/workflow_agent/baml_bridge.py](../agent_workspace/workflow_agent/baml_bridge.py) - Wrapper functions
-- [baml_client/](../baml_client/) - Generated Python client (DO NOT EDIT - regenerated by `baml generate`)
+- [agent.py](../agent_workspace/workflow_agent/agent.py) - Agent that calls BAML functions
+- [baml_bridge.py](../agent_workspace/workflow_agent/baml_bridge.py) - Wrapper functions
+- [baml_client/](../baml_client/) - Generated Python client (DO NOT EDIT)

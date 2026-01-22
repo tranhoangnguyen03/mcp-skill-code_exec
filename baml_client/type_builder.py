@@ -96,7 +96,7 @@ class PlanAst:
     def __init__(self, tb: type_builder.TypeBuilder):
         _tb = tb._tb # type: ignore (we know how to use this private attribute)
         self._bldr = _tb.class_("Plan")
-        self._properties: typing.Set[str] = set([  "action",  "skill_group",  "skill_name",  "intent",  "steps",  ])
+        self._properties: typing.Set[str] = set([  "action",  "skill_group",  "skill_name",  "intent",  "steps",  "requires_lookahead",  "checkpoints",  ])
         self._props = PlanProperties(self._bldr, self._properties)
 
     def type(self) -> baml_py.FieldType:
@@ -143,6 +143,14 @@ class PlanProperties:
     @property
     def steps(self) -> type_builder.ClassPropertyViewer:
         return type_builder.ClassPropertyViewer(self.__bldr.property("steps"))
+    
+    @property
+    def requires_lookahead(self) -> type_builder.ClassPropertyViewer:
+        return type_builder.ClassPropertyViewer(self.__bldr.property("requires_lookahead"))
+    
+    @property
+    def checkpoints(self) -> type_builder.ClassPropertyViewer:
+        return type_builder.ClassPropertyViewer(self.__bldr.property("checkpoints"))
     
     
 
