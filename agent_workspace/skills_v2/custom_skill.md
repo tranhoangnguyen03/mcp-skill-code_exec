@@ -30,7 +30,13 @@ When multiple items could match, select the best one explicitly.
 - If selecting from multiple candidates, print which one was chosen and why
 - Example: `print(f"Selected employee: {employee['name']} (exact match)")`
 
-### 5. Compliance
+### 5. Multi-turn Continuation
+If the plan requires lookahead, signal the agent to continue by printing specific markers.
+- **`CONTINUE_FACT: <fact>`**: Use this when you have discovered a piece of information needed for the next step.
+- **`CONTINUE_WORKFLOW: <reason>`**: Use this to explicitly tell the agent to perform another codegen-execute cycle.
+- Example: `print(f"CONTINUE_FACT: Davis domain is {domain}")`
+
+### 6. Compliance
 Use only the documented `mcp_tools` with correct signatures.
 - Call tools using standard Python function syntax (positional or keyword arguments)
 - Always provide required parameters

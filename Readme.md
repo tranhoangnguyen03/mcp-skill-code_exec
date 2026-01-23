@@ -17,6 +17,7 @@ The agent uses **BAML** for structured LLM interactions and follows a multi-phas
   - a generic custom workflow manual (no skill match)
 - **Execute**: run the generated code in a sandboxed subprocess with a timeout
 - **Respond**: summarize stdout/stderr and the outcome
+- **Multi-turn**: if a plan requires lookahead, the agent pauses, collects facts, and continues until completion
 
 ## Repository layout
 
@@ -35,7 +36,7 @@ agent_workspace/
   memory/                  Session memory (YAML persistence)
   tools/                   Python implementations of MCP tools (mcp_tools)
   data/                    Mock JSON data for services
-baml_src/                  BAML source files for LLM prompting
+baml_src/                  BAML source files for LLM prompting (split by concern)
 baml_client/               Generated BAML client
 .env                       Environment configuration (API keys)
 tests/                     Unit and integration tests
@@ -68,6 +69,7 @@ cp .env.example .env
 ```
 open_router_api_key=...
 open_router_model_name=...
+enable_workflow_plan_review=true
 ```
 
 ## Run
@@ -98,7 +100,7 @@ The UI shows the generated plan first and pauses for human approval before code 
 
 File-based conversation memory for multi-turn context. Stores conversation turns (`messages[]`) and working step artifacts (`steps[]`). See [memory/Readme.md](agent_workspace/memory/Readme.md).
 
-In the Chainlit UI, the agent automatically injects the last N past conversation turns into all LLM steps (plan, codegen, chat, respond). Configure N via `agent_memory_max_messages` (default: 10).
+In the Chainlit UI, the agent automatically injects the last N past conversation turns into all LLM steps (plan, codegen, chat, respond). Configure N via `agent_memory_max_messages` (default: 10). For multi-turn workflows, the UI continues automatically and injects collected facts into follow-up codegen.
 
 ```python
 from agent_workspace.memory import SessionMemory, StepType, StepCategory, extract_facts_simple

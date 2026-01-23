@@ -9,6 +9,7 @@ The Workflow Agent follows a multi-step process for each user request:
 2.  **Code Generation**: Generates Python code based on the selected skill, available tool documentation (MCP docs), and the user's intent.
 3.  **Execution**: Runs the generated code in a controlled environment with access to predefined tools.
 4.  **Response Generation**: Summarizes the execution results and provides a final answer to the user.
+5.  **Multi-turn Continuation**: If the plan requires lookahead, the agent collects facts, resumes codegen with those facts, and continues until completion.
 
 ## Key Components
 
@@ -67,3 +68,9 @@ agent_workspace/
 ├── workflow_agent/     # Core agent logic and BAML bridge
 └── main.py             # Entry point
 ```
+
+## Multi-turn workflows
+When a plan sets `requires_lookahead: true`, the agent:
+- Runs checkpoint steps until it emits `CONTINUE_FACT` and `CONTINUE_WORKFLOW: checkpoint_complete`.
+- Saves collected facts into workflow state.
+- Resumes codegen with an injected facts section until a final response is produced.

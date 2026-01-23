@@ -19,6 +19,21 @@
 
 **Key principle**: Do not select a skill if it would perform significant actions the user didn't request. Prefer `custom_script` for minimal, targeted operations.
 
+---
+
+## Multi-Turn Workflows
+
+**Choose `requires_lookahead: true` when:**
+- The request requires fetching data before performing an action (e.g., "Find X and then do Y")
+- The user's intent spans multiple logical steps that depend on intermediate results
+- You need to search for a resource (employee, candidate, ticket) to get its ID or attributes before proceeding
+
+**Checkpoints**:
+- Define `checkpoints` for steps that produce facts needed for subsequent turns.
+- The execution output should include `CONTINUE_FACT: <fact>` or `CONTINUE_WORKFLOW: <reason>` to signal the agent to continue.
+
+---
+
 For custom script implementation guidelines, see [custom_skill.md](./custom_skill.md).
 
 ---
